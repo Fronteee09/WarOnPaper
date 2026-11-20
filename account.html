@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WarOnPaper - Account</title>
+    <link rel="icon" type="image/png" href="waronpaperlogo.png">
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #090a0d;
+            color: #e2e8f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .auth-container {
+            background-color: #13161c;
+            border: 1px solid #262b36;
+            border-radius: 14px;
+            padding: 36px 28px;
+            width: 100%;
+            max-width: 390px;
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.85);
+        }
+
+        .header-logo {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .logo-img {
+            width: 70px;
+            height: 70px;
+            object-fit: contain;
+            margin-bottom: 10px;
+            border-radius: 8px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            color: #ffffff;
+            text-transform: uppercase;
+            font-weight: 800;
+            text-align: center;
+        }
+
+        .subtitle {
+            font-size: 0.8rem;
+            color: #7e8899;
+            text-align: center;
+            margin-top: 4px;
+            margin-bottom: 24px;
+        }
+
+        /* Form e Input */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-bottom: 6px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            background-color: #1a1f2c;
+            border: 1px solid #333c4d;
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            border-color: #2563eb;
+        }
+
+        /* Bottoni */
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            text-align: center;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            cursor: pointer;
+            border: none;
+            margin-top: 10px;
+        }
+
+        .btn-primary {
+            background-color: #2563eb;
+            color: #ffffff;
+        }
+
+        .btn-primary:hover {
+            background-color: #1d4ed8;
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: #94a3b8;
+            border: 1px solid #333c4d;
+            font-size: 0.85rem;
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.04);
+            color: #ffffff;
+        }
+
+        .btn-danger {
+            background-color: #dc2626;
+            color: #ffffff;
+        }
+
+        .btn-danger:hover {
+            background-color: #b91c1c;
+        }
+
+        /* Toggle tra Login e Registrazione */
+        .toggle-text {
+            text-align: center;
+            margin-top: 16px;
+            font-size: 0.85rem;
+            color: #7e8899;
+        }
+
+        .toggle-text a {
+            color: #3b82f6;
+            text-decoration: none;
+            cursor: font-weight;
+        }
+
+        .toggle-text a:hover {
+            text-decoration: underline;
+        }
+
+        /* Messaggi di errore o successo */
+        #message {
+            margin-top: 15px;
+            font-size: 0.85rem;
+            text-align: center;
+            min-height: 20px;
+        }
+
+        .error { color: #ef4444; }
+        .success { color: #22c55e; }
+
+        /* Sezione utente loggato (inizialmente nascosta) */
+        #logged-in-view {
+            display: none;
+            text-align: center;
+        }
+
+        #logged-in-view p {
+            margin-bottom: 20px;
+            font-size: 1rem;
+        }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.85rem;
+            color: #64748b;
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            color: #cbd5e1;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="auth-container">
+        <div class="header-logo">
+            <img src="waronpaperlogo.png" alt="WarOnPaper Logo" class="logo-img">
+            <h1 id="page-title">Registrazione</h1>
+            <p class="subtitle">Gestisci il tuo profilo WarOnPaper</p>
+        </div>
+
+        <!-- Vista Form (Login / Registrazione) -->
+        <div id="auth-form-view">
+            <div class="form-group">
+                <label for="nickname">Nickname</label>
+                <input type="text" id="nickname" placeholder="Il tuo nome in battaglia" required autocomplete="off">
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="••••••••" required>
+            </div>
+
+            <button id="action-btn" class="btn btn-primary" onclick="handleAuth()">Registrati</button>
+
+            <div class="toggle-text">
+                <span id="toggle-label">Hai già un account?</span> 
+                <a href="#" id="toggle-link" onclick="toggleMode(event)">Accedi</a>
+            </div>
+        </div>
+
+        <!-- Vista Utente Già Loggato -->
+        <div id="logged-in-view">
+            <p>Bentornato, <strong id="user-display-name" style="color: #3b82f6;"></strong>!</p>
+            <button class="btn btn-danger" onclick="handleLogout()">Esci dall'account</button>
+        </div>
+
+        <div id="message"></div>
+
+        <a href="index.html" class="back-link">← Torna al Menu Principale</a>
+    </div>
+
+    <!-- Script Firebase e Logica -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase.app.js";
+        import { 
+            getAuth, 
+            createUserWithEmailAndPassword, 
+            signInWithEmailAndPassword, 
+            signOut, 
+            onAuthStateChanged 
+        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase.auth.js";
+
+        // Configurazione Firebase dal tuo progetto
+        const firebaseConfig = {
+            apiKey: "AIzaSyAJBUhlPV8HlAC5vKTetVe1CKT3_ypOiQA",
+            authDomain: "prismlikesistem.firebaseapp.com",
+            projectId: "prismlikesistem",
+            storageBucket: "prismlikesistem.firebasestorage.app",
+            messagingSenderId: "670902515722",
+            appId: "1:670902515722:web:51770844204bca190107f3",
+            measurementId: "G-495SC7NW1F"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        let isLoginMode = false;
+
+        // Gestione cambio modalità (Registrazione <-> Login)
+        window.toggleMode = function(event) {
+            event.preventDefault();
+            isLoginMode = !isLoginMode;
+            
+            const title = document.getElementById('page-title');
+            const btn = document.getElementById('action-btn');
+            const toggleLabel = document.getElementById('toggle-label');
+            const toggleLink = document.getElementById('toggle-link');
+            document.getElementById('message').innerText = "";
+
+            if (isLoginMode) {
+                title.innerText = "Accedi";
+                btn.innerText = "Entra in Battaglia";
+                toggleLabel.innerText = "Non hai un account?";
+                toggleLink.innerText = "Registrati";
+            } else {
+                title.innerText = "Registrazione";
+                btn.innerText = "Registrati";
+                toggleLabel.innerText = "Hai già un account?";
+                toggleLink.innerText = "Accedi";
+            }
+        };
+
+        // Funzione principale di Autenticazione
+        window.handleAuth = async function() {
+            const nicknameInput = document.getElementById('nickname').value.trim();
+            const password = document.getElementById('password').value;
+            const messageDiv = document.getElementById('message');
+
+            messageDiv.className = "";
+            messageDiv.innerText = "";
+
+            if (!nicknameInput || !password) {
+                messageDiv.className = "error";
+                messageDiv.innerText = "Inserisci nickname e password.";
+                return;
+            }
+
+            // Trucco per usare il nickname come email fittizia per Firebase
+            // Rimuoviamo gli spazi nel nickname per sicurezza
+            const safeNick = nicknameInput.toLowerCase().replace(/[^a-z0-9]/g, '');
+            const fakeEmail = `${safeNick}@waronpaper.game`;
+
+            try {
+                if (isLoginMode) {
+                    // Login
+                    await signInWithEmailAndPassword(auth, fakeEmail, password);
+                    messageDiv.className = "success";
+                    messageDiv.innerText = "Login effettuato con successo!";
+                } else {
+                    // Registrazione
+                    await createUserWithEmailAndPassword(auth, fakeEmail, password);
+                    messageDiv.className = "success";
+                    messageDiv.innerText = "Account creato con successo!";
+                }
+            } catch (error) {
+                messageDiv.className = "error";
+                // Traduciamo i codici di errore più comuni di Firebase in italiano amichevole
+                if (error.code === 'auth/email-already-in-use') {
+                    messageDiv.innerText = "Questo nickname è già occupato.";
+                } else if (error.code === 'auth/weak-password') {
+                    messageDiv.innerText = "La password deve essere di almeno 6 caratteri.";
+                } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    messageDiv.innerText = "Nickname o password errati.";
+                } else {
+                    messageDiv.innerText = "Errore: " + error.message;
+                }
+            }
+        };
+
+        // Logout
+        window.handleLogout = async function() {
+            try {
+                await signOut(auth);
+            } catch (error) {
+                console.error("Errore durante il logout", error);
+            }
+        };
+
+        // Ascoltatore dello stato di autenticazione (cambia la schermata se loggato o meno)
+        onAuthStateChanged(auth, (user) => {
+            const formView = document.getElementById('auth-form-view');
+            const loggedView = document.getElementById('logged-in-view');
+            const displayName = document.getElementById('user-display-name');
+            const headerLogoTitle = document.getElementById('page-title');
+            const subtitle = document.querySelector('.subtitle');
+
+            if (user) {
+                // Utente loggato
+                formView.style.display = 'none';
+                loggedView.style.display = 'block';
+                
+                // Ricaviamo il nickname dall'email fittizia (es. "mario@waronpaper.game" -> "mario")
+                const nick = user.email.split('@')[0];
+                displayName.innerText = nick;
+                headerLogoTitle.innerText = "Il tuo Profilo";
+                subtitle.innerText = "Sei pronto per la guerra";
+            } else {
+                // Utente non loggato
+                formView.style.display = 'block';
+                loggedView.style.display = 'none';
+                headerLogoTitle.innerText = isLoginMode ? "Accedi" : "Registrazione";
+                subtitle.innerText = "Gestisci il tuo profilo WarOnPaper";
+            }
+        });
+    </script>
+</body>
+</html>
