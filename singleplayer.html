@@ -66,7 +66,7 @@
     <!-- Barra in alto -->
     <header class="top-bar">
         <div class="top-left">
-            <span>Giocatore: <strong id="player-name">Generale</strong></span>
+            <span>Comandante: <strong id="player-name">Generale</strong></span>
             <span>Soldi: <strong id="player-money" style="color: #22c55e;">10,000,000 €</strong></span>
         </div>
         <div class="top-right">
@@ -78,7 +78,7 @@
                 <option value="Repubblica Socialista">Repubblica Socialista</option>
             </select>
             <div style="display: flex; align-items: center; gap: 8px;">
-                <input type="text" id="flag-url-input" class="nation-input" placeholder="URL Bandiera (.png/.jpg)" style="width: 140px;" oninput="updateFlag(this.value)">
+                <input type="text" id="flag-url-input" class="nation-input" placeholder="URL Bandiera" style="width: 120px;" oninput="updateFlag(this.value)">
                 <div class="flag-box"><img id="flag-preview" src="waronpaperlogo.png" alt="Bandiera"></div>
             </div>
             <button class="btn btn-blue" style="width: auto; margin:0; padding: 6px 12px;" onclick="saveGameToBrowser()">Salva Partita</button>
@@ -87,10 +87,8 @@
 
     <!-- Contenitore Mappa e Pannello -->
     <div class="main-container">
-        <!-- Canvas Mappa Tattica -->
         <canvas id="map-canvas"></canvas>
 
-        <!-- Pannello Tattico Laterale -->
         <div class="side-panel">
             <h2>Pannello Tattico</h2>
             
@@ -99,7 +97,7 @@
                 <p id="selected-region-name" style="font-size: 1.1rem; font-weight: bold; margin-bottom: 5px;">Nessuno</p>
                 <p id="selected-region-owner" style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 12px;">Proprietario: -</p>
                 <div id="region-actions" style="display:none;">
-                    <button class="btn btn-secondary" onclick="openDiplomacy()">Diplomazia / Nazione</button>
+                    <button class="btn btn-secondary" onclick="openDiplomacy()">Diplomazia / Azioni</button>
                 </div>
             </div>
 
@@ -128,7 +126,7 @@
             </div>
 
             <div class="panel-section">
-                <h3>Azioni Movimento</h3>
+                <h3>Movimento Truppe</h3>
                 <button class="btn btn-secondary" id="move-btn" onclick="startMovementMode()">Crea Percorso (Waypoints)</button>
                 <button class="btn btn-blue" id="send-btn" style="display:none;" onclick="confirmMovement()">Invia Truppe</button>
             </div>
@@ -137,9 +135,7 @@
         </div>
     </div>
 
-    <!-- Script Logica di Gioco -->
     <script>
-        // Carica nome utente dall'account locale
         const currentUser = localStorage.getItem('wop_current_user') || "Generale";
         document.getElementById('player-name').innerText = currentUser;
 
@@ -149,7 +145,7 @@
         function updateNationName(val) { nationName = val; }
         function updateFlag(url) { if(url) document.getElementById('flag-preview').src = url; }
 
-        // Gestione Canvas e Mappa Interattiva
+        // Canvas mappa
         const canvas = document.getElementById('map-canvas');
         const ctx = canvas.getContext('2d');
 
@@ -160,29 +156,45 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        // Struttura delle regioni di gioco sulla mappa (stile poligoni / territori)
         let regions = [
-            { id: 0, name: "Nordia (Capitale)", owner: "player", color: "#2563eb", x: 200, y: 150, radius: 55, isSea: false, resistanceTimer: 15 },
-            { id: 1, name: "Valteria", owner: "player", color: "#2563eb", x: 380, y: 180, radius: 50, isSea: false, resistanceTimer: 15 },
-            { id: 2, name: "Ostia (Mare)", owner: "neutral", color: "#1e3a8a", x: 290, y: 280, radius: 65, isSea: true, resistanceTimer: 0 },
-            { id: 3, name: "Regno del Sud", owner: "Bot_Rosso", color: "#dc2626", x: 420, y: 380, radius: 60, isSea: false, resistanceTimer: 15 },
-            { id: 4, name: "Impero Orientale", owner: "Bot_Verde", color: "#16a34a", x: 600, y: 220, radius: 70, isSea: false, resistanceTimer: 15 }
+            { id: 0, name: "Nordia (Capitale)", owner: "player", color: "#2563eb", x: 200, y: 150, radius: 55, isSea: false },
+            { id: 1, name: "Valteria", owner: "player", color: "#2563eb", x: 380, y: 180, radius: 50, isSea: false },
+            { id: 2, name: "Ostia (Mare)", owner: "neutral", color: "#1e3a8a", x: 290, y: 280, radius: 65, isSea: true },
+            { id: 3, name: "Regno del Sud", owner: "Bot_Rosso", color: "#dc2626", x: 420, y: 380, radius: 60, isSea: false },
+            { id: 4, name: "Impero Orientale", owner: "Bot_Verde", color: "#16a34a", x: 600, y: 220, radius: 70, isSea: false }
         ];
 
         let selectedRegion = null;
 
-        // Disegno della mappa con bordi sottili e regioni interattive
+        // Controllo se stiamo caricando una partita specifica da yourgames.html
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const loadIndex = urlParams.get('load');
+            
+            if (loadIndex !== null) {
+                let savedGames = JSON.parse(localStorage.getItem('wop_saved_games') || '[]');
+                if (savedGames[loadIndex]) {
+                    let g = savedGames[loadIndex];
+                    nationName = g.nationName;
+                    playerMoney = g.money;
+                    document.getElementById('nation-name-input').value = g.nationName;
+                    document.getElementById('regime-select').value = g.regime;
+                    document.getElementById('player-money').innerText = playerMoney.toLocaleString() + " €";
+                    regions = g.regions;
+                }
+            }
+        };
+
         function drawMap() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Disegna collegamenti / confini tra regioni vicine
+            // Linee confini sottili
             ctx.strokeStyle = '#262b36';
-            ctx.lineWidth = 1.5;
+            ctx.lineWidth = 1;
             for (let i = 0; i < regions.length; i++) {
                 for (let j = i + 1; j < regions.length; j++) {
                     let r1 = regions[i], r2 = regions[j];
-                    let dist = Math.hypot(r1.x - r2.x, r1.y - r2.y);
-                    if (dist < 250) {
+                    if (Math.hypot(r1.x - r2.x, r1.y - r2.y) < 250) {
                         ctx.beginPath();
                         ctx.moveTo(r1.x, r1.y);
                         ctx.lineTo(r2.x, r2.y);
@@ -191,7 +203,6 @@
                 }
             }
 
-            // Disegna i territori
             regions.forEach(reg => {
                 ctx.beginPath();
                 ctx.arc(reg.x, reg.y, reg.radius, 0, Math.PI * 2);
@@ -200,12 +211,10 @@
                 ctx.fill();
                 ctx.globalAlpha = 1.0;
                 
-                // Bordo sottile della regione
                 ctx.strokeStyle = selectedRegion === reg ? '#ffffff' : '#090a0d';
                 ctx.lineWidth = selectedRegion === reg ? 3 : 1;
                 ctx.stroke();
 
-                // Testo nome territorio
                 ctx.fillStyle = '#ffffff';
                 ctx.font = '12px Segoe UI';
                 ctx.textAlign = 'center';
@@ -219,7 +228,6 @@
         }
         requestAnimationFrame(drawMap);
 
-        // Click sulla mappa per selezionare regioni
         canvas.addEventListener('click', (e) => {
             const rect = canvas.getBoundingClientRect();
             const mouseX = e.clientX - rect.left;
@@ -234,37 +242,35 @@
             }
         });
 
-        // Reclutamento Unità
         function recruitUnit(type) {
             let costs = { soldier: 5000, tank: 70000, airdefense: 40000, aircraft: 60000, missiles: 20000 };
             if (playerMoney >= costs[type]) {
                 playerMoney -= costs[type];
                 document.getElementById('player-money').innerText = playerMoney.toLocaleString() + " €";
-                alert(`Unità ${type} creata con successo!`);
+                alert(`Unità ${type} creata!`);
             } else {
                 alert("Fondi insufficienti!");
             }
         }
 
         function startMovementMode() {
-            alert("Modalità movimento attiva: clicca sui territori successivi per creare i waypoint.");
+            alert("Clicca sulle regioni per impostare i waypoint di movimento.");
             document.getElementById('send-btn').style.display = 'block';
         }
 
         function confirmMovement() {
-            alert("Truppe in movimento lungo il percorso stabilito!");
+            alert("Truppe in movimento!");
             document.getElementById('send-btn').style.display = 'none';
         }
 
         function openDiplomacy() {
             if (!selectedRegion) return;
-            let action = prompt(`Scegli azione diplomatica con ${selectedRegion.owner}:\n1. Dichiarare Guerra\n2. Chiedere Annessione\n3. Chiedere Territori`);
+            let action = prompt(`Azioni con ${selectedRegion.owner}:\n1. Dichiarare Guerra\n2. Chiedere Annessione\n3. Chiedere Territori`);
             if (action === "1") alert("Guerra dichiarata!");
-            else if (action === "2") alert("Richiesta di annessione inviata al bot...");
-            else if (action === "3") alert("Richiesta territori inviata...");
+            else if (action === "2") alert("Richiesta di annessione inviata.");
+            else if (action === "3") alert("Richiesta territori inviata.");
         }
 
-        // Salvataggio Partita nel Browser per yourgames.html
         function saveGameToBrowser() {
             const gameState = {
                 playerName: currentUser,
@@ -278,18 +284,8 @@
             let savedGames = JSON.parse(localStorage.getItem('wop_saved_games') || '[]');
             savedGames.push(gameState);
             localStorage.setItem('wop_saved_games', JSON.stringify(savedGames));
-            alert("Partita salvata con successo! Ora puoi caricarla da yourgames.html.");
+            alert("Partita salvata con successo!");
         }
-
-        // Logica dei Bot in background (simulazione guerre e alleanze)
-        setInterval(() => {
-            // I bot muovono truppe o conquistano territori neutrali ogni 5 secondi
-            regions.forEach(reg => {
-                if(reg.owner !== 'player' && reg.owner !== 'neutral') {
-                    // Eventuale attività del bot
-                }
-            });
-        }, 5000);
     </script>
 </body>
 </html>
