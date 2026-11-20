@@ -93,7 +93,7 @@
         .btn {
             display: block;
             width: 100%;
-            padding: 12px;
+            padding: 14px;
             text-align: center;
             font-size: 0.95rem;
             font-weight: 600;
@@ -103,7 +103,7 @@
             letter-spacing: 0.8px;
             cursor: pointer;
             border: none;
-            margin-top: 10px;
+            margin-top: 15px;
         }
 
         .btn-primary {
@@ -126,7 +126,7 @@
 
         .toggle-text {
             text-align: center;
-            margin-top: 16px;
+            margin-top: 18px;
             font-size: 0.85rem;
             color: #7e8899;
         }
@@ -187,26 +187,27 @@
         <div id="auth-form-view">
             <div class="form-group">
                 <label for="nickname">Nickname</label>
-                <input type="text" id="nickname" placeholder="Il tuo nome in battaglia" required autocomplete="off">
+                <input type="text" id="nickname" placeholder="Il tuo nome in battaglia" autocomplete="off">
             </div>
 
             <div class="form-group">
                 <label for="password">Password</label>
-                <input type="password" id="password" placeholder="••••••••" required>
+                <input type="password" id="password" placeholder="••••••••">
             </div>
 
-            <button id="action-btn" class="btn btn-primary">Registrati</button>
+            <!-- Usiamo onclick diretto per evitare qualsiasi blocco del browser -->
+            <button type="button" id="action-btn" class="btn btn-primary" onclick="eseguiAutenticazione()">Registrati</button>
 
             <div class="toggle-text">
                 <span id="toggle-label">Hai già un account?</span> 
-                <a href="#" id="toggle-link">Accedi</a>
+                <a href="#" id="toggle-link" onclick="cambiaModalita(event)">Accedi</a>
             </div>
         </div>
 
         <!-- Vista Utente Già Loggato -->
         <div id="logged-in-view">
             <p>Bentornato, <strong id="user-display-name" style="color: #3b82f6;"></strong>!</p>
-            <button id="logout-btn" class="btn btn-danger">Esci dall'account</button>
+            <button type="button" class="btn btn-danger" onclick="eseguiLogout()">Esci dall'account</button>
         </div>
 
         <div id="message"></div>
@@ -214,7 +215,7 @@
         <a href="index.html" class="back-link">← Torna al Menu Principale</a>
     </div>
 
-    <!-- Script Firebase e Logica -->
+    <!-- Script Firebase -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase.app.js";
         import { 
@@ -240,21 +241,16 @@
 
         let isLoginMode = false;
 
-        const title = document.getElementById('page-title');
-        const btn = document.getElementById('action-btn');
-        const toggleLabel = document.getElementById('toggle-label');
-        const toggleLink = document.getElementById('toggle-link');
-        const messageDiv = document.getElementById('message');
-        const formView = document.getElementById('auth-form-view');
-        const loggedView = document.getElementById('logged-in-view');
-        const displayName = document.getElementById('user-display-name');
-        const subtitle = document.querySelector('.subtitle');
-
-        // Gestione cambio modalità (Registrazione <-> Login)
-        toggleLink.addEventListener('click', (e) => {
-            e.preventDefault();
+        // Funzione globale per cambiare tra Registrazione e Login
+        window.cambiaModalita = function(event) {
+            event.preventDefault();
             isLoginMode = !isLoginMode;
-            messageDiv.innerText = "";
+            
+            const title = document.getElementById('page-title');
+            const btn = document.getElementById('action-btn');
+            const toggleLabel = document.getElementById('toggle-label');
+            const toggleLink = document.getElementById('toggle-link');
+            document.getElementById('message').innerText = "";
 
             if (isLoginMode) {
                 title.innerText = "Accedi";
@@ -267,12 +263,13 @@
                 toggleLabel.innerText = "Hai già un account?";
                 toggleLink.innerText = "Accedi";
             }
-        });
+        };
 
-        // Click sul bottone principale (Registrati / Accedi)
-        btn.addEventListener('click', async () => {
+        // Funzione globale collegata direttamente al click del bottone
+        window.eseguiAutenticazione = async function() {
             const nicknameInput = document.getElementById('nickname').value.trim();
             const password = document.getElementById('password').value;
+            const messageDiv = document.getElementById('message');
 
             messageDiv.className = "";
             messageDiv.innerText = "";
@@ -308,19 +305,25 @@
                     messageDiv.innerText = "Errore: " + error.message;
                 }
             }
-        });
+        };
 
-        // Logout
-        document.getElementById('logout-btn').addEventListener('click', async () => {
+        // Funzione globale per il logout
+        window.eseguiLogout = async function() {
             try {
                 await signOut(auth);
             } catch (error) {
                 console.error("Errore durante il logout", error);
             }
-        });
+        };
 
-        // Monitoraggio stato utente
+        // Monitoraggio dello stato dell'utente
         onAuthStateChanged(auth, (user) => {
+            const formView = document.getElementById('auth-form-view');
+            const loggedView = document.getElementById('logged-in-view');
+            const displayName = document.getElementById('user-display-name');
+            const title = document.getElementById('page-title');
+            const subtitle = document.querySelector('.subtitle');
+
             if (user) {
                 formView.style.display = 'none';
                 loggedView.style.display = 'block';
