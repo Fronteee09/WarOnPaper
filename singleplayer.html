@@ -160,6 +160,7 @@
                 <h3>Territorio Selezionato</h3>
                 <p id="selected-region-name" style="font-size: 1.1rem; font-weight: bold; margin-bottom: 5px;">Nessuno</p>
                 <p id="selected-region-owner" style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 6px;">Proprietario: -</p>
+                <p id="selected-region-diplomacy" style="font-size: 0.85rem; color: #38bdf8; margin-bottom: 6px;"></p>
                 
                 <div id="stationed-units-box" class="stationed-units" style="display:none;">
                     <strong>Unità di stanza:</strong>
@@ -214,20 +215,20 @@
 
         let playerMoney = 10000000;
         let nationName = "Repubblica di Aethel";
-        let playerChosenNation = "Italy"; // Default
+        let playerChosenNation = "Italy";
         let selectedLayer = null;
         let selectedTerritoryData = null;
         let isMovingMode = false;
         let movementLine = null;
         let waypoints = [];
         let territoryUnits = {};
+        let nationRelations = {}; // Gestione alleanze/guerre random per partita
         let geoJsonLayerGroup = null;
         let europeGeoData = null;
 
         function updateNationName(val) { nationName = val; }
         function updateFlag(url) { if(url) document.getElementById('flag-preview').src = url; }
 
-        // Inizializzazione della mappa geografica reale
         const map = L.map('map', {
             center: [48, 10],
             zoom: 4.5,
@@ -239,18 +240,29 @@
             maxZoom: 19
         }).addTo(map);
 
-        // Funzione per avviare la partita dopo aver scelto la nazione
         function selezionaNazioneIniziale(nazioneScelta) {
             playerChosenNation = nazioneScelta;
             document.getElementById('nation-select-screen').style.display = 'none';
             document.getElementById('nation-name-input').value = "Repubblica di " + nazioneScelta;
             nationName = "Repubblica di " + nazioneScelta;
             
-            // Ricarica la mappa colorando correttamente la nazione scelta dal giocatore
+            inizializzaDiplomaziaCasuale();
             renderMap();
+            avviaLoopDigioco();
         }
 
-        // Caricamento dati geografici Europa
+        // Genera alleanze e stati di guerra random diversi ad ogni partita
+        function inizializzaDiplomaziaCasuale() {
+            const statiPrincipali = ["Italy", "France", "Germany", "Spain", "United Kingdom", "Poland"];
+            statiPrincipali.forEach(stato => {
+                if (stato !== playerChosenNation) {
+                    let statiAnima = ["Neutrale", "Alleato", "Ostile"];
+                    let randStatus = statiAnima[Math.floor(Math.random() * statiAnima.length)];
+                    nationRelations[stato] = randStatus;
+                }
+            });
+        }
+
         fetch('https://raw.githubusercontent.com/leakyMirror/map-of-europe/master/GeoJSON/europe.geojson')
             .then(res => res.json())
             .then(data => {
@@ -306,10 +318,13 @@
                         });
 
                         let center = layer.getBounds().getCenter();
-                        selectedTerritoryData = { name: countryName, owner: owner, latlng: center, layer: layer };
+                        let statoRelazione = nationRelations[countryName] || "Neutrale";
+                        
+                        selectedTerritoryData = { name: countryName, owner: owner, latlng: center, layer: layer, relation: statoRelazione };
                         
                         document.getElementById('selected-region-name').innerText = countryName;
                         document.getElementById('selected-region-owner').innerText = "Proprietario: " + owner;
+                        document.getElementById('selected-region-diplomacy').innerText = "Stato Diplomatico: " + statoRelazione;
                         document.getElementById('region-actions').style.display = 'block';
                         document.getElementById('stationed-units-box').style.display = 'block';
                         updateUnitsDisplay(countryName);
@@ -318,12 +333,40 @@
             }).addTo(map);
         }
 
-        // Se l'utente arriva con ?load=X da yourgames.html, salta la schermata di selezione
+        // Loop di gioco: Economia (+1M ogni minuto) e AI aggressiva (Guerre random)
+        function avviaLoopDigioco() {
+            // 1. Aumento fondi ogni 60 secondi
+            setInterval(() => {
+                playerMoney += 1000000;
+                document.getElementById('player-money').innerText = playerMoney.toLocaleString() + " €";
+                console.pippo ? "" : console.log("Fondi aumentati di 1.000.000 €");
+            }, 60000);
+
+            // 2. Controllo attacchi IA random ogni 30 secondi
+            setInterval(() => {
+                nesTuttiBot = Object.keys(nationRelations);
+                if (nesTuttiBot.length === 0) return;
+
+                let botCasuale = nesTuttiBot[Math.floor(Math.random() * nesTuttiBot.length)];
+                
+                // Calcola forza totale del giocatore
+                let playerTotalPower = 0;
+                Object.values(territoryUnits.length ? territoryUnits : {}).forEach(u => {
+                    playerTotalPower += (u.soldier + u.tank * 3 + u.aircraft * 2);
+                });
+
+                // Se il bot è ostile o neutro e il giocatore è debole, può dichiarare guerra
+                if (nationRelations[botCasuale] === "Ostile" || (nationRelations[botCasuale] === "Neutrale" && Math.random() > 0.6)) {
+                    nationRelations[botCasuale] = "In Guerra!";
+                    alert(`⚠️ ATTENZIONE GENERALE! La nazione di [ ${botCasuale} ] ti ha dichiarato guerra a sorpresa!`);
+                }
+            }, 30000);
+        }
+
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
             const loadIndex = urlParams.get('load');
             
-            // Attendi mezzo secondo che scarichi il JSON della mappa prima di controllare il caricamento
             setTimeout(() => {
                 if (loadIndex !== null) {
                     let savedGames = JSON.parse(localStorage.getItem('wop_saved_games') || '[]');
@@ -332,6 +375,7 @@
                         nationName = g.nationName;
                         playerMoney = g.money;
                         playerChosenNation = g.playerChosenNation || "Italy";
+                        nationRelations = g.nationRelations || {};
                         document.getElementById('nation-name-input').value = g.nationName;
                         document.getElementById('regime-select').value = g.regime;
                         document.getElementById('player-money').innerText = playerMoney.toLocaleString() + " €";
@@ -339,13 +383,14 @@
                         
                         document.getElementById('nation-select-screen').style.display = 'none';
                         renderMap();
+                        avviaLoopDigioco();
                     }
                 }
             }, 600);
         };
 
         function updateUnitsDisplay(countryName) {
-            let u = territoryUnits[countryName];
+            let u = territoryUnits[countryName] || { soldier: 0, tank: 0, airdefense: 0, aircraft: 0, missiles: 0 };
             let text = `Fanteria: ${u.soldier} | Carri: ${u.tank} | Difesa Aerea: ${u.airdefense} | Aerei: ${u.aircraft} | Missili: ${u.missiles}`;
             document.getElementById('units-list-text').innerText = text;
         }
@@ -362,6 +407,9 @@
                 document.getElementById('player-money').innerText = playerMoney.toLocaleString() + " €";
 
                 let cName = selectedTerritoryData.name;
+                if (!territoryUnits[cName]) {
+                    territoryUnits[cName] = { soldier: 0, tank: 0, airdefense: 0, aircraft: 0, missiles: 0, marker: null };
+                }
                 territoryUnits[cName][type] += (type === 'missiles' ? 5 : 100);
 
                 let latlng = selectedTerritoryData.latlng;
@@ -419,10 +467,18 @@
 
         function openDiplomacy() {
             if (!selectedTerritoryData) return;
-            let action = prompt(`Azioni con ${selectedTerritoryData.owner} (${selectedTerritoryData.name}):\n1. Dichiarare Guerra\n2. Chiedere Annessione\n3. Chiedere Territori`);
-            if (action === "1") alert("Guerra dichiarata!");
-            else if (action === "2") alert("Richiesta di annessione inviata.");
-            else if (action === "3") alert("Richiesta territori inviata.");
+            let status = selectedTerritoryData.relation;
+            let action = prompt(`Rapporti con ${selectedTerritoryData.name} (${status}):\n1. Dichiarare Guerra\n2. Proporre Alleanza\n3. Chiedere Pace / Trattato`);
+            if (action === "1") {
+                nationRelations[selectedTerritoryData.name] = "In Guerra!";
+                alert("Hai dichiarato guerra a " + selectedTerritoryData.name + "!");
+            } else if (action === "2") {
+                nationRelations[selectedTerritoryData.name] = "Alleato";
+                alert("Alleanza stabilita con successo con " + selectedTerritoryData.name + "!");
+            } else if (action === "3") {
+                nationRelations[selectedTerritoryData.name] = "Neutrale";
+                alert("Trattato di pace firmato.");
+            }
         }
 
         function saveGameToBrowser() {
@@ -432,6 +488,7 @@
                 money: playerMoney,
                 regime: document.getElementById('regime-select').value,
                 playerChosenNation: playerChosenNation,
+                nationRelations: nationRelations,
                 timestamp: new Date().toLocaleString(),
                 territoryUnits: territoryUnits
             };
