@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WarOnPaper - Le tue Partite</title>
+    <link rel="icon" type="image/png" href="waronpaperlogo.png">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
+        body { background-color: #090a0d; color: #e2e8f0; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+
+        .container {
+            background-color: #13161c;
+            border: 1px solid #262b36;
+            border-radius: 14px;
+            padding: 36px 28px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.85);
+        }
+
+        h1 { font-size: 1.6rem; color: #ffffff; text-transform: uppercase; font-weight: 800; text-align: center; margin-bottom: 8px; }
+        .subtitle { font-size: 0.85rem; color: #7e8899; text-align: center; margin-bottom: 24px; }
+
+        .game-list { display: flex; flex-direction: column; gap: 12px; max-height: 350px; overflow-y: auto; margin-bottom: 20px; }
+        .game-item { background: #1a1f2c; border: 1px solid #333c4d; padding: 14px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .game-info strong { font-size: 1rem; color: #3b82f6; display: block; }
+        .game-info span { font-size: 0.8rem; color: #94a3b8; }
+
+        .btn { padding: 8px 14px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; text-transform: uppercase; font-size: 0.8rem; }
+        .btn-primary { background-color: #2563eb; color: #fff; }
+        .btn-primary:hover { background-color: #1d4ed8; }
+        .btn-danger { background-color: #dc2626; color: #fff; }
+        .btn-danger:hover { background-color: #b91c1c; }
+
+        .empty-msg { text-align: center; color: #64748b; font-size: 0.9rem; padding: 20px; }
+
+        .back-link { display: block; text-align: center; margin-top: 15px; font-size: 0.85rem; color: #64748b; text-decoration: none; }
+        .back-link:hover { color: #cbd5e1; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Partite Salvate</h1>
+        <p class="subtitle">Riprendi le tue campagne militari</p>
+
+        <div id="games-container" class="game-list">
+            <!-- Le partite salvate verranno caricate qui dinamicamente -->
+        </div>
+
+        <a href="index.html" class="back-link">← Torna al Menu Principale</a>
+    </div>
+
+    <script>
+        function loadSavedGames() {
+            const container = document.getElementById('games-container');
+            const savedGames = JSON.parse(localStorage.getItem('wop_saved_games') || '[]');
+
+            if (savedGames.length === 0) {
+                container.innerHTML = `<div class="empty-msg">Nessuna partita salvata trovata. Gioca a Singleplayer e salva la tua partita!</div>`;
+                return;
+            }
+
+            container.innerHTML = "";
+            savedGames.forEach((game, index) => {
+                const item = document.createElement('div');
+                item.className = 'game-item';
+                item.innerHTML = `
+                    <div class="game-info">
+                        <strong>${game.nationName} (${game.regime})</strong>
+                        <span>Giocatore: ${game.playerName} • ${game.timestamp}</span>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-primary" onclick="playGame(${index})">Gioca</button>
+                        <button class="btn btn-danger" onclick="deleteGame(${index})">Elimina</button>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function playGame(index) {
+            // Qui puoi caricare lo stato e reindirizzare a singleplayer
+            alert("Caricamento della partita selezionata...");
+            window.location.href = "singleplayer.html";
+        }
+
+        function deleteGame(index) {
+            let savedGames = JSON.parse(localStorage.getItem('wop_saved_games') || '[]');
+            savedGames.splice(index, 1);
+            localStorage.setItem('wop_saved_games', JSON.stringify(savedGames));
+            loadSavedGames();
+        }
+
+        loadSavedGames();
+    </script>
+</body>
+</html>
