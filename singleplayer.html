@@ -154,7 +154,8 @@
 
         let playerMoney = 10000000;
         let nationName = "Repubblica di Aethel";
-        let selectedTerritory = null;
+        let selectedLayer = null;
+        let selectedTerritoryData = null;
         let isMovingMode = false;
         let movementLine = null;
         let waypoints = [];
@@ -164,62 +165,67 @@
 
         // Inizializzazione della mappa geografica reale
         const map = L.map('map', {
-            center: [46, 14], // Centro sull'Europa
-            zoom: 5,
+            center: [48, 10], // Centro sull'Europa
+            zoom: 4.5,
             minZoom: 3,
             maxZoom: 9
         });
 
-        // Layer grafico scuro gratuito e senza API Key (OpenStreetMap / Stadia / Carto Dark)
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; OpenStreetMap contributors',
-            maxZoom: 20
-        }).addTo(map);
-
-        // Per avere lo stile scuro pulito senza scritte invadenti usiamo questo tile mirror gratuito:
-        map.eachLayer(layer => map.removeLayer(layer));
-        
+        // Tema scuro strategico pulito (CartoDB Dark Matter)
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
             maxZoom: 19
         }).addTo(map);
 
-        // Territori interattivi reali dell'Europa
-        const territories = [
-            { name: "Italia", owner: "player", lat: 42.5, lng: 12.5, color: "#2563eb" },
-            { name: "Francia", owner: "Bot_Francia", lat: 46.5, lng: 2.2, color: "#dc2626" },
-            { name: "Germania", owner: "Bot_Germania", lat: 51.1, lng: 10.4, color: "#dc2626" },
-            { name: "Spagna", owner: "Bot_Spagna", lat: 40.4, lng: -3.7, color: "#dc2626" },
-            { name: "Regno Unito", owner: "Bot_UK", lat: 55.3, lng: -3.4, color: "#dc2626" },
-            { name: "Polonia", owner: "Bot_Polonia", lat: 51.9, lng: 19.1, color: "#dc2626" },
-            { name: "Ucraina", owner: "Bot_Ucraina", lat: 48.3, lng: 31.1, color: "#dc2626" },
-            { name: "Austria", owner: "Bot_Austria", lat: 47.5, lng: 14.5, color: "#dc2626" },
-            { name: "Svizzera", owner: "Bot_Svizzera", lat: 46.8, lng: 8.2, color: "#dc2626" }
-        ];
+        // Caricamento dei confini reali dei paesi europei tramite GeoJSON pubblico ufficiale
+        fetch('https://raw.githubusercontent.com/leakyMirror/map-of-europe/master/GeoJSON/europe.geojson')
+            .then(res => res.json())
+            .then(data => {
+                L.geoJSON(data, {
+                    style: function(feature) {
+                        let countryName = feature.properties.NAME || feature.properties.name || "Territorio";
+                        let isPlayer = countryName.toLowerCase() === "italy" || countryName.toLowerCase() === "italia";
+                        return {
+                            fillColor: isPlayer ? '#2563eb' : '#1e1b4b',
+                            weight: 1,
+                            opacity: 1,
+                            color: '#334155', // Bordi sottili tra le nazioni
+                            fillOpacity: 0.65
+                        };
+                    },
+                    onEachFeature: function(feature, layer) {
+                        let countryName = feature.properties.NAME || feature.properties.name || "Territorio";
+                        let owner = (countryName.toLowerCase() === "italy" || countryName.toLowerCase() === "italia") ? "player" : "Bot_" + countryName;
 
-        territories.forEach(terr => {
-            let marker = L.circleMarker([terr.lat, terr.lng], {
-                color: terr.color,
-                fillColor: terr.color,
-                fillOpacity: 0.7,
-                radius: 14,
-                weight: 2
-            }).addTo(map);
+                        layer.bindTooltip(countryName, {direction: 'center', className: 'map-label'});
 
-            marker.bindTooltip(terr.name, {permanent: true, direction: 'top', className: 'map-label'});
+                        layer.on('click', function(e) {
+                            if (isMovingMode) {
+                                let latlng = e.latlng;
+                                waypoints.push([latlng.lat, latlng.lng]);
+                                updateMovementLine();
+                                return;
+                            }
 
-            marker.on('click', () => {
-                if (isMovingMode) {
-                    waypoints.push([terr.lat, terr.lng]);
-                    updateMovementLine();
-                    return;
-                }
+                            if (selectedLayer) {
+                                let defColor = (selectedLayer.feature.properties.NAME === "Italy") ? '#2563eb' : '#1e1b4b';
+                                selectedLayer.setStyle({ fillColor: defColor, weight: 1, color: '#334155' });
+                            }
 
-                selectedTerritory = terr;
-                document.getElementById('selected-region-name').innerText = terr.name;
-                document.getElementById('selected-region-owner').innerText = "Proprietario: " + terr.owner;
-                document.getElementById('region-actions').style.display = 'block';
+                            selectedLayer = layer;
+                            layer.setStyle({
+                                fillColor: '#3b82f6',
+                                weight: 2,
+                                color: '#ffffff'
+                            });
+
+                            selectedTerritoryData = { name: countryName, owner: owner, latlng: e.latlng };
+                            document.getElementById('selected-region-name').innerText = countryName;
+                            document.getElementById('selected-region-owner').innerText = "Proprietario: " + owner;
+                            document.getElementById('region-actions').style.display = 'block';
+                        });
+                    }
+                }).addTo(map);
             });
-        });
 
         // Caricamento partita salvata
         window.onload = function() {
@@ -250,13 +256,13 @@
         }
 
         function startMovementMode() {
-            if (!selectedTerritory) {
+            if (!selectedTerritoryData) {
                 alert("Seleziona prima il territorio di partenza.");
                 return;
             }
             isMovingMode = true;
-            waypoints = [[selectedTerritory.lat, selectedTerritory.lng]];
-            alert("Modalità movimento attiva: clicca sui territori di destinazione sulla mappa per tracciare la rotta, poi clicca 'Invia Truppe'.");
+            waypoints = [[selectedTerritoryData.latlng.lat, selectedTerritoryData.latlng.lng]];
+            alert("Modalità movimento attiva: clicca sui territori di destinazione per tracciare la rotta, poi clicca 'Invia Truppe'.");
             document.getElementById('send-btn').style.display = 'block';
         }
 
@@ -274,13 +280,13 @@
             }
             isMovingMode = false;
             document.getElementById('send-btn').style.display = 'none';
-            alert("Truppe in movimento lungo la rotta[cite: 2]!");
+            alert("Truppe in movimento lungo la rotta strategica!");
             if (movementLine) map.removeLayer(movementLine);
         }
 
         function openDiplomacy() {
-            if (!selectedTerritory) return;
-            let action = prompt(`Azioni con ${selectedTerritory.owner} (${selectedTerritory.name}):\n1. Dichiarare Guerra\n2. Chiedere Annessione\n3. Chiedere Territori`);
+            if (!selectedTerritoryData) return;
+            let action = prompt(`Azioni con ${selectedTerritoryData.owner} (${selectedTerritoryData.name}):\n1. Dichiarare Guerra\n2. Chiedere Annessione\n3. Chiedere Territori`);
             if (action === "1") alert("Guerra dichiarata!");
             else if (action === "2") alert("Richiesta di annessione inviata.");
             else if (action === "3") alert("Richiesta territori inviata.");
