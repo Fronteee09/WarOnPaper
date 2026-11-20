@@ -134,6 +134,7 @@
         .toggle-text a {
             color: #3b82f6;
             text-decoration: none;
+            cursor: pointer;
         }
 
         .toggle-text a:hover {
@@ -195,19 +196,18 @@
                 <input type="password" id="password" placeholder="••••••••">
             </div>
 
-            <!-- Usiamo onclick diretto per evitare qualsiasi blocco del browser -->
-            <button type="button" id="action-btn" class="btn btn-primary" onclick="eseguiAutenticazione()">Registrati</button>
+            <button type="button" id="action-btn" class="btn btn-primary">Registrati</button>
 
             <div class="toggle-text">
                 <span id="toggle-label">Hai già un account?</span> 
-                <a href="#" id="toggle-link" onclick="cambiaModalita(event)">Accedi</a>
+                <a id="toggle-link">Accedi</a>
             </div>
         </div>
 
         <!-- Vista Utente Già Loggato -->
         <div id="logged-in-view">
             <p>Bentornato, <strong id="user-display-name" style="color: #3b82f6;"></strong>!</p>
-            <button type="button" class="btn btn-danger" onclick="eseguiLogout()">Esci dall'account</button>
+            <button type="button" id="logout-btn" class="btn btn-danger">Esci dall'account</button>
         </div>
 
         <div id="message"></div>
@@ -215,7 +215,7 @@
         <a href="index.html" class="back-link">← Torna al Menu Principale</a>
     </div>
 
-    <!-- Script Firebase -->
+    <!-- Script Firebase e logica pulita con event listener -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase.app.js";
         import { 
@@ -241,16 +241,21 @@
 
         let isLoginMode = false;
 
-        // Funzione globale per cambiare tra Registrazione e Login
-        window.cambiaModalita = function(event) {
-            event.preventDefault();
+        const title = document.getElementById('page-title');
+        const btn = document.getElementById('action-btn');
+        const toggleLabel = document.getElementById('toggle-label');
+        const toggleLink = document.getElementById('toggle-link');
+        const messageDiv = document.getElementById('message');
+        const formView = document.getElementById('auth-form-view');
+        const loggedView = document.getElementById('logged-in-view');
+        const displayName = document.getElementById('user-display-name');
+        const subtitle = document.querySelector('.subtitle');
+
+        // Cambio modalità Login/Registrazione
+        toggleLink.addEventListener('click', (e) => {
+            e.preventDefault();
             isLoginMode = !isLoginMode;
-            
-            const title = document.getElementById('page-title');
-            const btn = document.getElementById('action-btn');
-            const toggleLabel = document.getElementById('toggle-label');
-            const toggleLink = document.getElementById('toggle-link');
-            document.getElementById('message').innerText = "";
+            messageDiv.innerText = "";
 
             if (isLoginMode) {
                 title.innerText = "Accedi";
@@ -263,13 +268,12 @@
                 toggleLabel.innerText = "Hai già un account?";
                 toggleLink.innerText = "Accedi";
             }
-        };
+        });
 
-        // Funzione globale collegata direttamente al click del bottone
-        window.eseguiAutenticazione = async function() {
+        // Click sul bottone principale gestito in modo nativo
+        btn.addEventListener('click', async () => {
             const nicknameInput = document.getElementById('nickname').value.trim();
             const password = document.getElementById('password').value;
-            const messageDiv = document.getElementById('message');
 
             messageDiv.className = "";
             messageDiv.innerText = "";
@@ -287,7 +291,7 @@
                 if (isLoginMode) {
                     await signInWithEmailAndPassword(auth, fakeEmail, password);
                     messageDiv.className = "success";
-                    messageDiv.innerText = "Login effettuato con successo!";
+                    messageDiv.innerText = "Login effettuato!";
                 } else {
                     await createUserWithEmailAndPassword(auth, fakeEmail, password);
                     messageDiv.className = "success";
@@ -301,29 +305,25 @@
                     messageDiv.innerText = "La password deve essere di almeno 6 caratteri.";
                 } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
                     messageDiv.innerText = "Nickname o password errati.";
+                } else if (error.code === 'auth/operation-not-allowed') {
+                    messageDiv.innerText = "Errore: Attiva 'Email/Password' su Firebase Authentication.";
                 } else {
                     messageDiv.innerText = "Errore: " + error.message;
                 }
             }
-        };
+        });
 
-        // Funzione globale per il logout
-        window.eseguiLogout = async function() {
+        // Logout
+        document.getElementById('logout-btn').addEventListener('click', async () => {
             try {
                 await signOut(auth);
             } catch (error) {
-                console.error("Errore durante il logout", error);
+                console.error("Errore logout", error);
             }
-        };
+        });
 
-        // Monitoraggio dello stato dell'utente
+        // Gestione visuale stato utente loggato/scollegato
         onAuthStateChanged(auth, (user) => {
-            const formView = document.getElementById('auth-form-view');
-            const loggedView = document.getElementById('logged-in-view');
-            const displayName = document.getElementById('user-display-name');
-            const title = document.getElementById('page-title');
-            const subtitle = document.querySelector('.subtitle');
-
             if (user) {
                 formView.style.display = 'none';
                 loggedView.style.display = 'block';
