@@ -272,7 +272,6 @@
             });
         }
 
-        // Caricamento dei confini vettoriali reali (GeoJSON)
         fetch('https://raw.githubusercontent.com/leakyMirror/map-of-europe/master/GeoJSON/europe.geojson')
             .then(res => res.json())
             .then(data => {
@@ -291,7 +290,7 @@
                         fillColor: isPlayer ? '#2563eb' : '#1e1b4b',
                         weight: 1.2,
                         opacity: 1,
-                        color: '#334155', // Bordi reali dei confini
+                        color: '#334155',
                         fillOpacity: 0.7
                     };
                 },
@@ -345,23 +344,37 @@
             }).addTo(map);
         }
 
+        // Loop di gioco: Economia e AI aggressiva bilanciata (meno frequente e basata sulla forza)
         function avviaLoopDigioco() {
+            // Aumento fondi ogni 1 minuto
             setInterval(() => {
                 playerMoney += 1000000;
                 document.getElementById('player-money').innerText = playerMoney.toLocaleString() + " €";
             }, 60000);
 
+            // Controllo attacchi IA (ogni 60 secondi anziché 30, e controlla la forza)
             setInterval(() => {
                 let nazioniUniche = Object.keys(nationRelations);
                 if (nazioniUniche.length === 0) return;
-                let botCasuale = nazioniUniche[Math.floor(Math.random() * nazioniUniche.length)];
                 
-                if (nationRelations[botCasuale] === "Ostile" || (nationRelations[botCasuale] === "Neutrale" && Math.random() > 0.65)) {
+                let botCasuale = nazioniUniche[Math.floor(Math.random() * nazioniUniche.length)];
+                if (nationRelations[botCasuale] === "In Guerra!") return; // Già in guerra
+
+                // Calcola la forza totale del giocatore
+                let playerTotalPower = 0;
+                Object.values(territoryUnits).forEach(u => {
+                    playerTotalPower += (u.soldier + u.tank * 3 + u.aircraft * 2);
+                });
+
+                // Se il giocatore è molto forte (es. oltre 500 truppe), l'IA ci pensa due volte (bassa probabilità)
+                let sogliaAttacco = playerTotalPower > 300 ? 0.90 : 0.70;
+
+                if (nationRelations[botCasuale] === "Ostile" && Math.random() > sogliaAttacco) {
                     nationRelations[botCasuale] = "In Guerra!";
                     let flag = nationFlags[botCasuale] || "🏴";
-                    alert(`⚠️ ATTENZIONE GENERALE! La nazione di ${flag} [ ${botCasuale} ] ti ha dichiarato guerra a sorpresa!`);
+                    alert(`⚠️ ATTENZIONE GENERALE! La nazione ostile ${flag} [ ${botCasuale} ] ha deciso di dichiararti guerra!`);
                 }
-            }, 30000);
+            }, 60000);
         }
 
         window.onload = function() {
@@ -454,15 +467,48 @@
             }
         }
 
+        // Funzione di movimento fluido e veloce delle truppe lungo i waypoint (stile Control Europe)
         function confirmMovement() {
             if (waypoints.length < 2) {
                 alert("Seleziona almeno una destinazione!");
                 return;
             }
             isMovingMode = false;
-            document.getElementById('send-btn').style.display = 'none';
-            alert("Truppe in movimento lungo la rotta strategica[cite: 2]!");
+            document.getElementById('send-btn').style.display ='none';
             if (movementLine) map.removeLayer(movementLine);
+
+            alert("Truppe in marcia rapida lungo la rotta strategica!");
+
+            // Crea un'icona mobile che viaggia fluida e veloce tra i waypoint
+            let movingIcon = L.marker(waypoints[0], {
+                icon: L.icon({ iconUrl: 'soldier.png', iconSize: [26, 26], iconAnchor: [13, 13] })
+            }).addTo(map);
+
+            let currentWaypointIndex = 0;
+            let progress = 0;
+            let speed = 0.08; // Velocità di movimento fluida e scattante
+
+            let moveInterval = setInterval(() => {
+                progress += speed;
+                if (progress >= 1) {
+                    progress = 0;
+                    currentWaypointIndex++;
+                    if (currentWaypointIndex >= waypoints.length - 1) {
+                        clearInterval(moveInterval);
+                        setTimeout(() => map.removeLayer(movingIcon), 1000);
+                        alert("Truppe arrivate a destinazione con successo!");
+                        return;
+                    }
+                }
+
+                let p1 = waypoints[currentWaypointIndex];
+                let p2 = waypoints[currentWaypointIndex + 1];
+
+                let lat = p1[0] + (p2[0] - p1[0]) * progress;
+                let lng = p1[1] + (p2[1] - p1[1]) * progress;
+
+                movingIcon.setLatLng([lat, lng]);
+            }, 50); // Intervallo fluido a 50ms
         }
 
         function openDiplomacy() {
