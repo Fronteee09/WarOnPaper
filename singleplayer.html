@@ -6,7 +6,7 @@
     <title>WarOnPaper - Singleplayer</title>
     <link rel="icon" type="image/png" href="waronpaperlogo.png">
     
-    <!-- Leaflet CSS per la mappa geografica reale -->
+    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
     <style>
@@ -162,43 +162,52 @@
         function updateNationName(val) { nationName = val; }
         function updateFlag(url) { if(url) document.getElementById('flag-preview').src = url; }
 
-        // Inizializzazione della mappa geografica reale con tema scuro strategico
+        // Inizializzazione della mappa geografica reale
         const map = L.map('map', {
-            center: [48, 15], // Centro sull'Europa
-            zoom: 4,
+            center: [46, 14], // Centro sull'Europa
+            zoom: 5,
             minZoom: 3,
-            maxZoom: 8
+            maxZoom: 9
         });
 
-        // Layer grafico scuro (stile wargame)
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-            subdomains: 'abcd',
+        // Layer grafico scuro gratuito e senza API Key (OpenStreetMap / Stadia / Carto Dark)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap contributors',
             maxZoom: 20
         }).addTo(map);
 
-        // Aggiungiamo alcune nazioni reali come marker/aree interattive di esempio sulla mappa
+        // Per avere lo stile scuro pulito senza scritte invadenti usiamo questo tile mirror gratuito:
+        map.eachLayer(layer => map.removeLayer(layer));
+        
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            maxZoom: 19
+        }).addTo(map);
+
+        // Territori interattivi reali dell'Europa
         const territories = [
-            { name: "Italia", owner: "player", lat: 41.8719, lng: 12.5674, color: "#2563eb" },
-            { name: "Francia", owner: "Bot_Francia", lat: 46.6033, lng: 1.8883, color: "#dc2626" },
-            { name: "Germania", owner: "Bot_Germania", lat: 51.1657, lng: 10.4515, color: "#dc2626" },
-            { name: "Spagna", owner: "Bot_Spagna", lat: 40.4637, lng: -3.7492, color: "#dc2626" },
-            { name: "Regno Unito", owner: "Bot_UK", lat: 55.3781, lng: -3.4360, color: "#dc2626" },
-            { name: "Polonia", owner: "Bot_Polonia", lat: 51.9194, lng: 19.1451, color: "#dc2626" },
-            { name: "Ucraina", owner: "Bot_Ucraina", lat: 48.3794, lng: 31.1656, color: "#dc2626" }
+            { name: "Italia", owner: "player", lat: 42.5, lng: 12.5, color: "#2563eb" },
+            { name: "Francia", owner: "Bot_Francia", lat: 46.5, lng: 2.2, color: "#dc2626" },
+            { name: "Germania", owner: "Bot_Germania", lat: 51.1, lng: 10.4, color: "#dc2626" },
+            { name: "Spagna", owner: "Bot_Spagna", lat: 40.4, lng: -3.7, color: "#dc2626" },
+            { name: "Regno Unito", owner: "Bot_UK", lat: 55.3, lng: -3.4, color: "#dc2626" },
+            { name: "Polonia", owner: "Bot_Polonia", lat: 51.9, lng: 19.1, color: "#dc2626" },
+            { name: "Ucraina", owner: "Bot_Ucraina", lat: 48.3, lng: 31.1, color: "#dc2626" },
+            { name: "Austria", owner: "Bot_Austria", lat: 47.5, lng: 14.5, color: "#dc2626" },
+            { name: "Svizzera", owner: "Bot_Svizzera", lat: 46.8, lng: 8.2, color: "#dc2626" }
         ];
 
         territories.forEach(terr => {
-            let circle = L.circle([terr.lat, terr.lng], {
+            let marker = L.circleMarker([terr.lat, terr.lng], {
                 color: terr.color,
                 fillColor: terr.color,
-                fillOpacity: 0.5,
-                radius: 120000 // raggio in metri sulla mappa reale
+                fillOpacity: 0.7,
+                radius: 14,
+                weight: 2
             }).addTo(map);
 
-            circle.bindTooltip(terr.name, {permanent: true, direction: 'center', className: 'map-label'});
+            marker.bindTooltip(terr.name, {permanent: true, direction: 'top', className: 'map-label'});
 
-            circle.on('click', () => {
+            marker.on('click', () => {
                 if (isMovingMode) {
                     waypoints.push([terr.lat, terr.lng]);
                     updateMovementLine();
@@ -212,7 +221,7 @@
             });
         });
 
-        // Caricamento partita salvata (se richiamata da yourgames.html)
+        // Caricamento partita salvata
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
             const loadIndex = urlParams.get('load');
@@ -242,12 +251,12 @@
 
         function startMovementMode() {
             if (!selectedTerritory) {
-                alert("Seleziona prima il territorio di partenza delle tue truppe.");
+                alert("Seleziona prima il territorio di partenza.");
                 return;
             }
             isMovingMode = true;
             waypoints = [[selectedTerritory.lat, selectedTerritory.lng]];
-            alert("Modalità movimento attiva: clicca sui territori successivi sulla mappa reale per creare la rotta, poi clicca 'Invia Truppe'.");
+            alert("Modalità movimento attiva: clicca sui territori di destinazione sulla mappa per tracciare la rotta, poi clicca 'Invia Truppe'.");
             document.getElementById('send-btn').style.display = 'block';
         }
 
@@ -265,7 +274,7 @@
             }
             isMovingMode = false;
             document.getElementById('send-btn').style.display = 'none';
-            alert("Truppe in movimento lungo la rotta geografica stabilita[cite: 2]!");
+            alert("Truppe in movimento lungo la rotta[cite: 2]!");
             if (movementLine) map.removeLayer(movementLine);
         }
 
