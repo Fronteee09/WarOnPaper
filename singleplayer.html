@@ -13,6 +13,35 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
         body { background-color: #090a0d; color: #e2e8f0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
+        /* Schermata di selezione nazione iniziale */
+        #nation-select-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(9, 10, 13, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+        }
+        .select-box {
+            background-color: #13161c;
+            border: 1px solid #262b36;
+            border-radius: 14px;
+            padding: 36px;
+            width: 100%;
+            max-width: 420px;
+            text-align: center;
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.85);
+        }
+        .select-box h1 { font-size: 1.6rem; color: #ffffff; text-transform: uppercase; margin-bottom: 8px; }
+        .select-box p { font-size: 0.85rem; color: #94a3b8; margin-bottom: 20px; }
+        .nation-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .nation-option-btn {
+            background: #1a1f2c; border: 1px solid #333c4d; color: #fff;
+            padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; text-transform: uppercase; font-size: 0.85rem;
+        }
+        .nation-option-btn:hover { background: #2563eb; border-color: #3b82f6; }
+
         /* Barra in alto */
         .top-bar {
             background-color: #13161c;
@@ -78,6 +107,22 @@
     </style>
 </head>
 <body>
+
+    <!-- Schermata di Selezione Nazione Iniziale -->
+    <div id="nation-select-screen">
+        <div class="select-box">
+            <h1>Scegli la tua Nazione</h1>
+            <p>Seleziona lo stato da cui iniziare la tua campagna militare</p>
+            <div class="nation-grid">
+                <button class="nation-option-btn" onclick="selezionaNazioneIniziale('Italy')">Italia</button>
+                <button class="nation-option-btn" onclick="selezionaNazioneIniziale('France')">Francia</button>
+                <button class="nation-option-btn" onclick="selezionaNazioneIniziale('Germany')">Germania</button>
+                <button class="nation-option-btn" onclick="selezionaNazioneIniziale('Spain')">Spagna</button>
+                <button class="nation-option-btn" onclick="selezionaNazioneIniziale('United Kingdom')">Regno Unito</button>
+                <button class="nation-option-btn" onclick="selezionaNazioneIniziale('Poland')">Polonia</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Barra in alto -->
     <header class="top-bar">
@@ -169,113 +214,141 @@
 
         let playerMoney = 10000000;
         let nationName = "Repubblica di Aethel";
+        let playerChosenNation = "Italy"; // Default
         let selectedLayer = null;
         let selectedTerritoryData = null;
         let isMovingMode = false;
         let movementLine = null;
         let waypoints = [];
-
-        // Database delle unità stanziate per ogni territorio
         let territoryUnits = {};
+        let geoJsonLayerGroup = null;
+        let europeGeoData = null;
 
         function updateNationName(val) { nationName = val; }
         function updateFlag(url) { if(url) document.getElementById('flag-preview').src = url; }
 
         // Inizializzazione della mappa geografica reale
         const map = L.map('map', {
-            center: [48, 10], // Centro sull'Europa
+            center: [48, 10],
             zoom: 4.5,
             minZoom: 3,
             maxZoom: 9
         });
 
-        // Tema scuro strategico pulito (CartoDB Dark Matter)
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
             maxZoom: 19
         }).addTo(map);
 
-        // Caricamento dei confini reali dei paesi europei tramite GeoJSON
+        // Funzione per avviare la partita dopo aver scelto la nazione
+        function selezionaNazioneIniziale(nazioneScelta) {
+            playerChosenNation = nazioneScelta;
+            document.getElementById('nation-select-screen').style.display = 'none';
+            document.getElementById('nation-name-input').value = "Repubblica di " + nazioneScelta;
+            nationName = "Repubblica di " + nazioneScelta;
+            
+            // Ricarica la mappa colorando correttamente la nazione scelta dal giocatore
+            renderMap();
+        }
+
+        // Caricamento dati geografici Europa
         fetch('https://raw.githubusercontent.com/leakyMirror/map-of-europe/master/GeoJSON/europe.geojson')
             .then(res => res.json())
             .then(data => {
-                L.geoJSON(data, {
-                    style: function(feature) {
-                        let countryName = feature.properties.NAME || feature.properties.name || "Territorio";
-                        let isPlayer = countryName.toLowerCase() === "italy" || countryName.toLowerCase() === "italia";
-                        return {
-                            fillColor: isPlayer ? '#2563eb' : '#1e1b4b',
-                            weight: 1,
-                            opacity: 1,
-                            color: '#334155',
-                            fillOpacity: 0.65
-                        };
-                    },
-                    onEachFeature: function(feature, layer) {
-                        let countryName = feature.properties.NAME || feature.properties.name || "Territorio";
-                        let owner = (countryName.toLowerCase() === "italy" || countryName.toLowerCase() === "italia") ? "player" : "Bot_" + countryName;
+                europeGeoData = data;
+            });
 
-                        if (!territoryUnits[countryName]) {
-                            territoryUnits[countryName] = { soldier: 0, tank: 0, airdefense: 0, aircraft: 0, missiles: 0, marker: null };
+        function renderMap() {
+            if (!europeGeoData) return;
+            if (geoJsonLayerGroup) map.removeLayer(geoJsonLayerGroup);
+
+            geoJsonLayerGroup = L.geoJSON(europeGeoData, {
+                style: function(feature) {
+                    let countryName = feature.properties.NAME || feature.properties.name || "Territorio";
+                    let isPlayer = countryName.toLowerCase() === playerChosenNation.toLowerCase();
+                    return {
+                        fillColor: isPlayer ? '#2563eb' : '#1e1b4b',
+                        weight: 1,
+                        opacity: 1,
+                        color: '#334155',
+                        fillOpacity: 0.65
+                    };
+                },
+                onEachFeature: function(feature, layer) {
+                    let countryName = feature.properties.NAME || feature.properties.name || "Territorio";
+                    let isPlayer = countryName.toLowerCase() === playerChosenNation.toLowerCase();
+                    let owner = isPlayer ? "player" : "Bot_" + countryName;
+
+                    if (!territoryUnits[countryName]) {
+                        territoryUnits[countryName] = { soldier: 0, tank: 0, airdefense: 0, aircraft: 0, missiles: 0, marker: null };
+                    }
+
+                    layer.bindTooltip(countryName, {direction: 'center', className: 'map-label'});
+
+                    layer.on('click', function(e) {
+                        if (isMovingMode) {
+                            let latlng = e.latlng;
+                            waypoints.push([latlng.lat, latlng.lng]);
+                            updateMovementLine();
+                            return;
                         }
 
-                        layer.bindTooltip(countryName, {direction: 'center', className: 'map-label'});
+                        if (selectedLayer) {
+                            let prevName = selectedLayer.feature.properties.NAME;
+                            let prevIsPlayer = prevName.toLowerCase() === playerChosenNation.toLowerCase();
+                            selectedLayer.setStyle({ fillColor: prevIsPlayer ? '#2563eb' : '#1e1b4b', weight: 1, color: '#334155' });
+                        }
 
-                        layer.on('click', function(e) {
-                            if (isMovingMode) {
-                                let latlng = e.latlng;
-                                waypoints.push([latlng.lat, latlng.lng]);
-                                updateMovementLine();
-                                return;
-                            }
-
-                            if (selectedLayer) {
-                                let defColor = (selectedLayer.feature.properties.NAME === "Italy") ? '#2563eb' : '#1e1b4b';
-                                selectedLayer.setStyle({ fillColor: defColor, weight: 1, color: '#334155' });
-                            }
-
-                            selectedLayer = layer;
-                            layer.setStyle({
-                                fillColor: '#3b82f6',
-                                weight: 2,
-                                color: '#ffffff'
-                            });
-
-                            let center = layer.getBounds().getCenter();
-                            selectedTerritoryData = { name: countryName, owner: owner, latlng: center, layer: layer };
-                            
-                            document.getElementById('selected-region-name').innerText = countryName;
-                            document.getElementById('selected-region-owner').innerText = "Proprietario: " + owner;
-                            document.getElementById('region-actions').style.display = 'block';
-                            document.getElementById('stationed-units-box').style.display = 'block';
-                            updateUnitsDisplay(countryName);
+                        selectedLayer = layer;
+                        layer.setStyle({
+                            fillColor: '#3b82f6',
+                            weight: 2,
+                            color: '#ffffff'
                         });
+
+                        let center = layer.getBounds().getCenter();
+                        selectedTerritoryData = { name: countryName, owner: owner, latlng: center, layer: layer };
+                        
+                        document.getElementById('selected-region-name').innerText = countryName;
+                        document.getElementById('selected-region-owner').innerText = "Proprietario: " + owner;
+                        document.getElementById('region-actions').style.display = 'block';
+                        document.getElementById('stationed-units-box').style.display = 'block';
+                        updateUnitsDisplay(countryName);
+                    });
+                }
+            }).addTo(map);
+        }
+
+        // Se l'utente arriva con ?load=X da yourgames.html, salta la schermata di selezione
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const loadIndex = urlParams.get('load');
+            
+            // Attendi mezzo secondo che scarichi il JSON della mappa prima di controllare il caricamento
+            setTimeout(() => {
+                if (loadIndex !== null) {
+                    let savedGames = JSON.parse(localStorage.getItem('wop_saved_games') || '[]');
+                    if (savedGames[loadIndex]) {
+                        let g = savedGames[loadIndex];
+                        nationName = g.nationName;
+                        playerMoney = g.money;
+                        playerChosenNation = g.playerChosenNation || "Italy";
+                        document.getElementById('nation-name-input').value = g.nationName;
+                        document.getElementById('regime-select').value = g.regime;
+                        document.getElementById('player-money').innerText = playerMoney.toLocaleString() + " €";
+                        if (g.territoryUnits) territoryUnits = g.territoryUnits;
+                        
+                        document.getElementById('nation-select-screen').style.display = 'none';
+                        renderMap();
                     }
-                }).addTo(map);
-            });
+                }
+            }, 600);
+        };
 
         function updateUnitsDisplay(countryName) {
             let u = territoryUnits[countryName];
             let text = `Fanteria: ${u.soldier} | Carri: ${u.tank} | Difesa Aerea: ${u.airdefense} | Aerei: ${u.aircraft} | Missili: ${u.missiles}`;
             document.getElementById('units-list-text').innerText = text;
         }
-
-        // Caricamento partita salvata
-        window.onload = function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const loadIndex = urlParams.get('load');
-            if (loadIndex !== null) {
-                let savedGames = JSON.parse(localStorage.getItem('wop_saved_games') || '[]');
-                if (savedGames[loadIndex]) {
-                    let g = savedGames[loadIndex];
-                    nationName = g.nationName;
-                    playerMoney = g.money;
-                    document.getElementById('nation-name-input').value = g.nationName;
-                    document.getElementById('regime-select').value = g.regime;
-                    document.getElementById('player-money').innerText = playerMoney.toLocaleString() + " €";
-                    if (g.territoryUnits) territoryUnits = g.territoryUnits;
-                }
-            }
-        };
 
         function recruitUnit(type, iconFileName) {
             if (!selectedTerritoryData) {
@@ -291,7 +364,6 @@
                 let cName = selectedTerritoryData.name;
                 territoryUnits[cName][type] += (type === 'missiles' ? 5 : 100);
 
-                // Mostra o aggiorna l'icona visiva dell'unità sul territorio nella mappa
                 let latlng = selectedTerritoryData.latlng;
                 if (!territoryUnits[cName].marker) {
                     let unitIcon = L.icon({
@@ -301,7 +373,6 @@
                     });
                     territoryUnits[cName].marker = L.marker(latlng, { icon: unitIcon }).addTo(map);
                 } else {
-                    // Se c'è già un'icona, aggiorniamo l'icona principale con l'ultima unità creata
                     let unitIcon = L.icon({
                         iconUrl: iconFileName,
                         iconSize: [28, 28],
@@ -360,6 +431,7 @@
                 nationName: nationName,
                 money: playerMoney,
                 regime: document.getElementById('regime-select').value,
+                playerChosenNation: playerChosenNation,
                 timestamp: new Date().toLocaleString(),
                 territoryUnits: territoryUnits
             };
