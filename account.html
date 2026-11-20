@@ -63,7 +63,6 @@
             margin-bottom: 24px;
         }
 
-        /* Form e Input */
         .form-group {
             margin-bottom: 16px;
         }
@@ -91,7 +90,6 @@
             border-color: #2563eb;
         }
 
-        /* Bottoni */
         .btn {
             display: block;
             width: 100%;
@@ -117,18 +115,6 @@
             background-color: #1d4ed8;
         }
 
-        .btn-secondary {
-            background-color: transparent;
-            color: #94a3b8;
-            border: 1px solid #333c4d;
-            font-size: 0.85rem;
-        }
-
-        .btn-secondary:hover {
-            background-color: rgba(255, 255, 255, 0.04);
-            color: #ffffff;
-        }
-
         .btn-danger {
             background-color: #dc2626;
             color: #ffffff;
@@ -138,7 +124,6 @@
             background-color: #b91c1c;
         }
 
-        /* Toggle tra Login e Registrazione */
         .toggle-text {
             text-align: center;
             margin-top: 16px;
@@ -149,14 +134,12 @@
         .toggle-text a {
             color: #3b82f6;
             text-decoration: none;
-            cursor: font-weight;
         }
 
         .toggle-text a:hover {
             text-decoration: underline;
         }
 
-        /* Messaggi di errore o successo */
         #message {
             margin-top: 15px;
             font-size: 0.85rem;
@@ -167,7 +150,6 @@
         .error { color: #ef4444; }
         .success { color: #22c55e; }
 
-        /* Sezione utente loggato (inizialmente nascosta) */
         #logged-in-view {
             display: none;
             text-align: center;
@@ -213,18 +195,18 @@
                 <input type="password" id="password" placeholder="••••••••" required>
             </div>
 
-            <button id="action-btn" class="btn btn-primary" onclick="handleAuth()">Registrati</button>
+            <button id="action-btn" class="btn btn-primary">Registrati</button>
 
             <div class="toggle-text">
                 <span id="toggle-label">Hai già un account?</span> 
-                <a href="#" id="toggle-link" onclick="toggleMode(event)">Accedi</a>
+                <a href="#" id="toggle-link">Accedi</a>
             </div>
         </div>
 
         <!-- Vista Utente Già Loggato -->
         <div id="logged-in-view">
             <p>Bentornato, <strong id="user-display-name" style="color: #3b82f6;"></strong>!</p>
-            <button class="btn btn-danger" onclick="handleLogout()">Esci dall'account</button>
+            <button id="logout-btn" class="btn btn-danger">Esci dall'account</button>
         </div>
 
         <div id="message"></div>
@@ -243,7 +225,6 @@
             onAuthStateChanged 
         } from "https://www.gstatic.com/firebasejs/10.8.0/firebase.auth.js";
 
-        // Configurazione Firebase dal tuo progetto
         const firebaseConfig = {
             apiKey: "AIzaSyAJBUhlPV8HlAC5vKTetVe1CKT3_ypOiQA",
             authDomain: "prismlikesistem.firebaseapp.com",
@@ -259,16 +240,21 @@
 
         let isLoginMode = false;
 
+        const title = document.getElementById('page-title');
+        const btn = document.getElementById('action-btn');
+        const toggleLabel = document.getElementById('toggle-label');
+        const toggleLink = document.getElementById('toggle-link');
+        const messageDiv = document.getElementById('message');
+        const formView = document.getElementById('auth-form-view');
+        const loggedView = document.getElementById('logged-in-view');
+        const displayName = document.getElementById('user-display-name');
+        const subtitle = document.querySelector('.subtitle');
+
         // Gestione cambio modalità (Registrazione <-> Login)
-        window.toggleMode = function(event) {
-            event.preventDefault();
+        toggleLink.addEventListener('click', (e) => {
+            e.preventDefault();
             isLoginMode = !isLoginMode;
-            
-            const title = document.getElementById('page-title');
-            const btn = document.getElementById('action-btn');
-            const toggleLabel = document.getElementById('toggle-label');
-            const toggleLink = document.getElementById('toggle-link');
-            document.getElementById('message').innerText = "";
+            messageDiv.innerText = "";
 
             if (isLoginMode) {
                 title.innerText = "Accedi";
@@ -281,13 +267,12 @@
                 toggleLabel.innerText = "Hai già un account?";
                 toggleLink.innerText = "Accedi";
             }
-        };
+        });
 
-        // Funzione principale di Autenticazione
-        window.handleAuth = async function() {
+        // Click sul bottone principale (Registrati / Accedi)
+        btn.addEventListener('click', async () => {
             const nicknameInput = document.getElementById('nickname').value.trim();
             const password = document.getElementById('password').value;
-            const messageDiv = document.getElementById('message');
 
             messageDiv.className = "";
             messageDiv.innerText = "";
@@ -298,26 +283,21 @@
                 return;
             }
 
-            // Trucco per usare il nickname come email fittizia per Firebase
-            // Rimuoviamo gli spazi nel nickname per sicurezza
             const safeNick = nicknameInput.toLowerCase().replace(/[^a-z0-9]/g, '');
             const fakeEmail = `${safeNick}@waronpaper.game`;
 
             try {
                 if (isLoginMode) {
-                    // Login
                     await signInWithEmailAndPassword(auth, fakeEmail, password);
                     messageDiv.className = "success";
                     messageDiv.innerText = "Login effettuato con successo!";
                 } else {
-                    // Registrazione
                     await createUserWithEmailAndPassword(auth, fakeEmail, password);
                     messageDiv.className = "success";
                     messageDiv.innerText = "Account creato con successo!";
                 }
             } catch (error) {
                 messageDiv.className = "error";
-                // Traduciamo i codici di errore più comuni di Firebase in italiano amichevole
                 if (error.code === 'auth/email-already-in-use') {
                     messageDiv.innerText = "Questo nickname è già occupato.";
                 } else if (error.code === 'auth/weak-password') {
@@ -328,40 +308,30 @@
                     messageDiv.innerText = "Errore: " + error.message;
                 }
             }
-        };
+        });
 
         // Logout
-        window.handleLogout = async function() {
+        document.getElementById('logout-btn').addEventListener('click', async () => {
             try {
                 await signOut(auth);
             } catch (error) {
                 console.error("Errore durante il logout", error);
             }
-        };
+        });
 
-        // Ascoltatore dello stato di autenticazione (cambia la schermata se loggato o meno)
+        // Monitoraggio stato utente
         onAuthStateChanged(auth, (user) => {
-            const formView = document.getElementById('auth-form-view');
-            const loggedView = document.getElementById('logged-in-view');
-            const displayName = document.getElementById('user-display-name');
-            const headerLogoTitle = document.getElementById('page-title');
-            const subtitle = document.querySelector('.subtitle');
-
             if (user) {
-                // Utente loggato
                 formView.style.display = 'none';
                 loggedView.style.display = 'block';
-                
-                // Ricaviamo il nickname dall'email fittizia (es. "mario@waronpaper.game" -> "mario")
                 const nick = user.email.split('@')[0];
                 displayName.innerText = nick;
-                headerLogoTitle.innerText = "Il tuo Profilo";
+                title.innerText = "Il tuo Profilo";
                 subtitle.innerText = "Sei pronto per la guerra";
             } else {
-                // Utente non loggato
                 formView.style.display = 'block';
                 loggedView.style.display = 'none';
-                headerLogoTitle.innerText = isLoginMode ? "Accedi" : "Registrazione";
+                title.innerText = isLoginMode ? "Accedi" : "Registrazione";
                 subtitle.innerText = "Gestisci il tuo profilo WarOnPaper";
             }
         });
