@@ -83,7 +83,6 @@
             color: #ffffff;
             font-size: 0.95rem;
             outline: none;
-            transition: border-color 0.2s;
         }
 
         input:focus {
@@ -196,18 +195,18 @@
                 <input type="password" id="password" placeholder="••••••••">
             </div>
 
-            <button type="button" id="action-btn" class="btn btn-primary">Registrati</button>
+            <button type="button" id="action-btn" class="btn btn-primary" onclick="gestisciAccount()">Registrati</button>
 
             <div class="toggle-text">
                 <span id="toggle-label">Hai già un account?</span> 
-                <a id="toggle-link">Accedi</a>
+                <a onclick="cambiaModalita()">Accedi</a>
             </div>
         </div>
 
         <!-- Vista Utente Già Loggato -->
         <div id="logged-in-view">
             <p>Bentornato, <strong id="user-display-name" style="color: #3b82f6;"></strong>!</p>
-            <button type="button" id="logout-btn" class="btn btn-danger">Esci dall'account</button>
+            <button type="button" class="btn btn-danger" onclick="eseguiLogout()">Esci dall'account</button>
         </div>
 
         <div id="message"></div>
@@ -215,47 +214,25 @@
         <a href="index.html" class="back-link">← Torna al Menu Principale</a>
     </div>
 
-    <!-- Script Firebase e logica pulita con event listener -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase.app.js";
-        import { 
-            getAuth, 
-            createUserWithEmailAndPassword, 
-            signInWithEmailAndPassword, 
-            signOut, 
-            onAuthStateChanged 
-        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase.auth.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyAJBUhlPV8HlAC5vKTetVe1CKT3_ypOiQA",
-            authDomain: "prismlikesistem.firebaseapp.com",
-            projectId: "prismlikesistem",
-            storageBucket: "prismlikesistem.firebasestorage.app",
-            messagingSenderId: "670902515722",
-            appId: "1:670902515722:web:51770844204bca190107f3",
-            measurementId: "G-495SC7NW1F"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-
+    <script>
         let isLoginMode = false;
 
-        const title = document.getElementById('page-title');
-        const btn = document.getElementById('action-btn');
-        const toggleLabel = document.getElementById('toggle-label');
-        const toggleLink = document.getElementById('toggle-link');
-        const messageDiv = document.getElementById('message');
-        const formView = document.getElementById('auth-form-view');
-        const loggedView = document.getElementById('logged-in-view');
-        const displayName = document.getElementById('user-display-name');
-        const subtitle = document.querySelector('.subtitle');
+        // Controlla se c'è già un utente salvato all'avvio
+        window.onload = function() {
+            const savedUser = localStorage.getItem('wop_current_user');
+            if (savedUser) {
+                mostraVistaLoggato(savedUser);
+            }
+        };
 
-        // Cambio modalità Login/Registrazione
-        toggleLink.addEventListener('click', (e) => {
-            e.preventDefault();
+        function cambiaModalita() {
             isLoginMode = !isLoginMode;
-            messageDiv.innerText = "";
+            document.getElementById('message').innerText = "";
+            
+            const title = document.getElementById('page-title');
+            const btn = document.getElementById('action-btn');
+            const toggleLabel = document.getElementById('toggle-label');
+            const toggleLink = document.querySelector('.toggle-text a');
 
             if (isLoginMode) {
                 title.innerText = "Accedi";
@@ -268,76 +245,69 @@
                 toggleLabel.innerText = "Hai già un account?";
                 toggleLink.innerText = "Accedi";
             }
-        });
+        }
 
-        // Click sul bottone principale gestito in modo nativo
-        btn.addEventListener('click', async () => {
-            const nicknameInput = document.getElementById('nickname').value.trim();
+        function gestisciAccount() {
+            const nickname = document.getElementById('nickname').value.trim();
             const password = document.getElementById('password').value;
+            const messageDiv = document.getElementById('message');
 
             messageDiv.className = "";
             messageDiv.innerText = "";
 
-            if (!nicknameInput || !password) {
+            if (!nickname || !password) {
                 messageDiv.className = "error";
                 messageDiv.innerText = "Inserisci nickname e password.";
                 return;
             }
 
-            const safeNick = nicknameInput.toLowerCase().replace(/[^a-z0-9]/g, '');
-            const fakeEmail = `${safeNick}@waronpaper.game`;
-
-            try {
-                if (isLoginMode) {
-                    await signInWithEmailAndPassword(auth, fakeEmail, password);
+            if (isLoginMode) {
+                // Logica Login
+                const savedPass = localStorage.getItem('wop_pass_' + nickname);
+                if (savedPass && savedPass === password) {
+                    localStorage.setItem('wop_current_user', nickname);
                     messageDiv.className = "success";
                     messageDiv.innerText = "Login effettuato!";
+                    setTimeout(() => mostraVistaLoggato(nickname), 800);
                 } else {
-                    await createUserWithEmailAndPassword(auth, fakeEmail, password);
+                    messageDiv.className = "error";
+                    messageDiv.innerText = "Nickname o password errati.";
+                }
+            } else {
+                // Logica Registrazione
+                if (localStorage.getItem('wop_pass_' + nickname)) {
+                    messageDiv.className = "error";
+                    messageDiv.innerText = "Questo nickname è già occupato.";
+                } else {
+                    localStorage.setItem('wop_pass_' + nickname, password);
+                    localStorage.setItem('wop_current_user', nickname);
                     messageDiv.className = "success";
                     messageDiv.innerText = "Account creato con successo!";
-                }
-            } catch (error) {
-                messageDiv.className = "error";
-                if (error.code === 'auth/email-already-in-use') {
-                    messageDiv.innerText = "Questo nickname è già occupato.";
-                } else if (error.code === 'auth/weak-password') {
-                    messageDiv.innerText = "La password deve essere di almeno 6 caratteri.";
-                } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-                    messageDiv.innerText = "Nickname o password errati.";
-                } else if (error.code === 'auth/operation-not-allowed') {
-                    messageDiv.innerText = "Errore: Attiva 'Email/Password' su Firebase Authentication.";
-                } else {
-                    messageDiv.innerText = "Errore: " + error.message;
+                    setTimeout(() => mostraVistaLoggato(nickname), 800);
                 }
             }
-        });
+        }
 
-        // Logout
-        document.getElementById('logout-btn').addEventListener('click', async () => {
-            try {
-                await signOut(auth);
-            } catch (error) {
-                console.error("Errore logout", error);
-            }
-        });
+        function mostraVistaLoggato(nickname) {
+            document.getElementById('auth-form-view').style.display = 'none';
+            document.getElementById('logged-in-view').style.display = 'block';
+            document.getElementById('user-display-name').innerText = nickname;
+            document.getElementById('page-title').innerText = "Il tuo Profilo";
+            document.querySelector('.subtitle').innerText = "Sei pronto per la guerra";
+            document.getElementById('message').innerText = "";
+        }
 
-        // Gestione visuale stato utente loggato/scollegato
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                formView.style.display = 'none';
-                loggedView.style.display = 'block';
-                const nick = user.email.split('@')[0];
-                displayName.innerText = nick;
-                title.innerText = "Il tuo Profilo";
-                subtitle.innerText = "Sei pronto per la guerra";
-            } else {
-                formView.style.display = 'block';
-                loggedView.style.display = 'none';
-                title.innerText = isLoginMode ? "Accedi" : "Registrazione";
-                subtitle.innerText = "Gestisci il tuo profilo WarOnPaper";
-            }
-        });
+        function eseguiLogout() {
+            localStorage.removeItem('wop_current_user');
+            document.getElementById('auth-form-view').style.display = 'block';
+            document.getElementById('logged-in-view').style.display = 'none';
+            document.getElementById('nickname').value = "";
+            document.getElementById('password').value = "";
+            document.getElementById('page-title').innerText = "Registrazione";
+            document.querySelector('.subtitle').innerText = "Gestisci il tuo profilo WarOnPaper";
+            document.getElementById('message').innerText = "";
+            isLoginMode = false;
+        }
     </script>
 </body>
 </html>
