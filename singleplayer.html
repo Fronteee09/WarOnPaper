@@ -29,16 +29,16 @@
             border-radius: 14px;
             padding: 36px;
             width: 100%;
-            max-width: 420px;
+            max-width: 450px;
             text-align: center;
             box-shadow: 0 12px 35px rgba(0, 0, 0, 0.85);
         }
-        .select-box h1 { font-size: 1.6rem; color: #ffffff; text-transform: uppercase; margin-bottom: 8px; }
+        .select-box h1 { font-size: 1.5rem; color: #ffffff; text-transform: uppercase; margin-bottom: 8px; }
         .select-box p { font-size: 0.85rem; color: #94a3b8; margin-bottom: 20px; }
-        .nation-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .nation-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; max-height: 250px; overflow-y: auto; }
         .nation-option-btn {
             background: #1a1f2c; border: 1px solid #333c4d; color: #fff;
-            padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; text-transform: uppercase; font-size: 0.85rem;
+            padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; text-transform: uppercase; font-size: 0.8rem;
         }
         .nation-option-btn:hover { background: #2563eb; border-color: #3b82f6; }
 
@@ -112,14 +112,15 @@
     <div id="nation-select-screen">
         <div class="select-box">
             <h1>Scegli la tua Nazione</h1>
-            <p>Seleziona lo stato da cui iniziare la tua campagna militare</p>
+            <p>Seleziona lo stato da cui iniziare la tua campagna</p>
             <div class="nation-grid">
-                <button class="nation-option-btn" onclick="selezionaNazioneIniziale('Italy')">Italia</button>
-                <button class="nation-option-btn" onclick="selezionaNazioneIniziale('France')">Francia</button>
-                <button class="nation-option-btn" onclick="selezionaNazioneIniziale('Germany')">Germania</button>
-                <button class="nation-option-btn" onclick="selezionaNazioneIniziale('Spain')">Spagna</button>
-                <button class="nation-option-btn" onclick="selezionaNazioneIniziale('United Kingdom')">Regno Unito</button>
-                <button class="nation-option-btn" onclick="selezionaNazioneIniziale('Poland')">Polonia</button>
+                <button class="nation-option-btn" onclick="selezionaNazioneIniziale('Italia')">Italia</button>
+                <button class="nation-option-btn" onclick="selezionaNazioneIniziale('Francia')">Francia</button>
+                <button class="nation-option-btn" onclick="selezionaNazioneIniziale('Germania')">Germania</button>
+                <button class="nation-option-btn" onclick="selezionaNazioneIniziale('Spagna')">Spagna</button>
+                <button class="nation-option-btn" onclick="selezionaNazioneIniziale('Regno Unito')">Regno Unito</button>
+                <button class="nation-option-btn" onclick="selezionaNazioneIniziale('Egitto')">Egitto (Nord Africa)</button>
+                <button class="nation-option-btn" onclick="selezionaNazioneIniziale('Turchia')">Turchia (Medio Oriente)</button>
             </div>
         </div>
     </div>
@@ -215,23 +216,21 @@
 
         let playerMoney = 10000000;
         let nationName = "Repubblica di Aethel";
-        let playerChosenNation = "Italy";
-        let selectedLayer = null;
+        let playerChosenNation = "Italia";
+        let selectedCircle = null;
         let selectedTerritoryData = null;
         let isMovingMode = false;
         let movementLine = null;
         let waypoints = [];
         let territoryUnits = {};
-        let nationRelations = {}; // Gestione alleanze/guerre random per partita
-        let geoJsonLayerGroup = null;
-        let europeGeoData = null;
+        let nationRelations = {};
 
         function updateNationName(val) { nationName = val; }
         function updateFlag(url) { if(url) document.getElementById('flag-preview').src = url; }
 
         const map = L.map('map', {
-            center: [48, 10],
-            zoom: 4.5,
+            center: [36, 18], // Centro tra Europa, Nord Africa e Medio Oriente
+            zoom: 4,
             minZoom: 3,
             maxZoom: 9
         });
@@ -240,6 +239,48 @@
             maxZoom: 19
         }).addTo(map);
 
+        // Database completo con Regioni Italiane, Estere, Nord Africa e Medio Oriente
+        const mapRegions = [
+            // Italia (Regioni)
+            { name: "Lombardia", nation: "Italia", lat: 45.4, lng: 9.9 },
+            { name: "Lazio", nation: "Italia", lat: 41.9, lng: 12.5 },
+            { name: "Emilia-Romagna", nation: "Italia", lat: 44.5, lng: 11.3 },
+            { name: "Veneto", nation: "Italia", lat: 45.4, lng: 11.8 },
+            { name: "Campania", nation: "Italia", lat: 40.8, lng: 14.3 },
+            { name: "Sicilia", nation: "Italia", lat: 37.6, lng: 14.0 },
+            { name: "Piemonte", nation: "Italia", lat: 45.1, lng: 7.7 },
+            
+            // Europa
+            { name: "Île-de-France (Parigi)", nation: "Francia", lat: 48.8, lng: 2.3 },
+            { name: "Marsiglia / Sud Francia", nation: "Francia", lat: 43.3, lng: 5.4 },
+            { name: "Berlino / Germania", nation: "Germania", lat: 52.5, lng: 13.4 },
+            { name: "Baviera", nation: "Germania", lat: 48.1, lng: 11.5 },
+            { name: "Madrid / Spagna", nation: "Spagna", lat: 40.4, lng: -3.7 },
+            { name: "Barcellona / Catalogna", nation: "Spagna", lat: 41.3, lng: 2.1 },
+            { name: "Londra / Inghilterra", nation: "Regno Unito", lat: 51.5, lng: -0.1 },
+            { name: "Varsavia / Polonia", nation: "Polonia", lat: 52.2, lng: 21.0 },
+
+            // Nord Africa
+            { name: "Il Cairo / Egitto", nation: "Egitto", lat: 30.0, lng: 31.2 },
+            { name: "Alessandria / Egitto", nation: "Egitto", lat: 31.2, lng: 29.9 },
+            { name: "Tripoli / Libia", nation: "Libia", lat: 32.8, lng: 13.1 },
+            { name: "Bengasi / Libia", nation: "Libia", lat: 32.1, lng: 20.0 },
+            { name: "Tunisi / Tunisia", nation: "Tunisia", lat: 36.8, lng: 10.1 },
+            { name: "Algeri / Algeria", nation: "Algeria", lat: 36.7, lng: 3.0 },
+            { name: "Casablanca / Marocco", nation: "Marocco", lat: 33.5, lng: -7.5 },
+
+            // Medio Oriente
+            { name: "Ankara / Turchia", nation: "Turchia", lat: 39.9, lng: 32.8 },
+            { name: "Istanbul / Turchia", nation: "Turchia", lat: 41.0, lng: 28.9 },
+            { name: "Baghdad / Iraq", nation: "Iraq", lat: 33.3, lng: 44.3 },
+            { name: "Tehran / Iran", nation: "Iran", lat: 35.6, lng: 51.3 },
+            { name: "Riyadh / Arabia Saudita", nation: "Arabia Saudita", lat: 24.7, lng: 46.7 },
+            { name: "Gerusalemme / Israele", nation: "Israele", lat: 31.7, lng: 35.2 },
+            { name: "Damasco / Siria", nation: "Siria", lat: 33.5, lng: 36.2 }
+        ];
+
+        let regionMarkers = {};
+
         function selezionaNazioneIniziale(nazioneScelta) {
             playerChosenNation = nazioneScelta;
             document.getElementById('nation-select-screen').style.display = 'none';
@@ -247,118 +288,88 @@
             nationName = "Repubblica di " + nazioneScelta;
             
             inizializzaDiplomaziaCasuale();
-            renderMap();
+            renderMapRegions();
             avviaLoopDigioco();
         }
 
-        // Genera alleanze e stati di guerra random diversi ad ogni partita
         function inizializzaDiplomaziaCasuale() {
-            const statiPrincipali = ["Italy", "France", "Germany", "Spain", "United Kingdom", "Poland"];
-            statiPrincipali.forEach(stato => {
-                if (stato !== playerChosenNation) {
+            let nazioniUniche = [...new Set(mapRegions.map(r => r.nation))];
+            nazioniUniche.forEach(nat => {
+                if (nat !== playerChosenNation) {
                     let statiAnima = ["Neutrale", "Alleato", "Ostile"];
-                    let randStatus = statiAnima[Math.floor(Math.random() * statiAnima.length)];
-                    nationRelations[stato] = randStatus;
+                    nationRelations[nat] = statiAnima[Math.floor(Math.random() * statiAnima.length)];
                 }
             });
         }
 
-        fetch('https://raw.githubusercontent.com/leakyMirror/map-of-europe/master/GeoJSON/europe.geojson')
-            .then(res => res.json())
-            .then(data => {
-                europeGeoData = data;
-            });
+        function renderMapRegions() {
+            mapRegions.forEach(reg => {
+                let isPlayer = reg.nation.toLowerCase() === playerChosenNation.toLowerCase();
+                let owner = isPlayer ? "player" : "Bot_" + reg.nation;
+                let color = isPlayer ? "#2563eb" : "#dc2626";
 
-        function renderMap() {
-            if (!europeGeoData) return;
-            if (geoJsonLayerGroup) map.removeLayer(geoJsonLayerGroup);
+                if (!territoryUnits[reg.name]) {
+                    territoryUnits[reg.name] = { soldier: 0, tank: 0, airdefense: 0, aircraft: 0, missiles: 0, marker: null };
+                }
 
-            geoJsonLayerGroup = L.geoJSON(europeGeoData, {
-                style: function(feature) {
-                    let countryName = feature.properties.NAME || feature.properties.name || "Territorio";
-                    let isPlayer = countryName.toLowerCase() === playerChosenNation.toLowerCase();
-                    return {
-                        fillColor: isPlayer ? '#2563eb' : '#1e1b4b',
-                        weight: 1,
-                        opacity: 1,
-                        color: '#334155',
-                        fillOpacity: 0.65
-                    };
-                },
-                onEachFeature: function(feature, layer) {
-                    let countryName = feature.properties.NAME || feature.properties.name || "Territorio";
-                    let isPlayer = countryName.toLowerCase() === playerChosenNation.toLowerCase();
-                    let owner = isPlayer ? "player" : "Bot_" + countryName;
+                let marker = L.circleMarker([reg.lat, reg.lng], {
+                    color: color,
+                    fillColor: color,
+                    fillOpacity: 0.7,
+                    radius: 10,
+                    weight: 2
+                }).addTo(map);
 
-                    if (!territoryUnits[countryName]) {
-                        territoryUnits[countryName] = { soldier: 0, tank: 0, airdefense: 0, aircraft: 0, missiles: 0, marker: null };
+                marker.bindTooltip(`${reg.name} (${reg.nation})`, {direction: 'top', className: 'map-label'});
+
+                marker.on('click', () => {
+                    if (isMovingMode) {
+                        waypoints.push([reg.lat, reg.lng]);
+                        updateMovementLine();
+                        return;
                     }
 
-                    layer.bindTooltip(countryName, {direction: 'center', className: 'map-label'});
+                    if (selectedCircle) {
+                        let prevNat = selectedCircle.regionInfo.nation;
+                        let prevIsPl = prevNat.toLowerCase() === playerChosenNation.toLowerCase();
+                        selectedCircle.setStyle({ color: prevIsPl ? "#2563eb" : "#dc2626", fillColor: prevIsPl ? "#2563eb" : "#dc2626" });
+                    }
 
-                    layer.on('click', function(e) {
-                        if (isMovingMode) {
-                            let latlng = e.latlng;
-                            waypoints.push([latlng.lat, latlng.lng]);
-                            updateMovementLine();
-                            return;
-                        }
+                    selectedCircle = marker;
+                    marker.setStyle({ color: "#ffffff", fillColor: "#3b82f6" });
 
-                        if (selectedLayer) {
-                            let prevName = selectedLayer.feature.properties.NAME;
-                            let prevIsPlayer = prevName.toLowerCase() === playerChosenNation.toLowerCase();
-                            selectedLayer.setStyle({ fillColor: prevIsPlayer ? '#2563eb' : '#1e1b4b', weight: 1, color: '#334155' });
-                        }
+                    let statoRelazione = nationRelations[reg.nation] || "Propria nazione";
+                    if (isPlayer) statoRelazione = "Territorio Nazionale";
 
-                        selectedLayer = layer;
-                        layer.setStyle({
-                            fillColor: '#3b82f6',
-                            weight: 2,
-                            color: '#ffffff'
-                        });
+                    selectedTerritoryData = { name: reg.name, nation: reg.nation, owner: owner, latlng: [reg.lat, reg.lng] };
 
-                        let center = layer.getBounds().getCenter();
-                        let statoRelazione = nationRelations[countryName] || "Neutrale";
-                        
-                        selectedTerritoryData = { name: countryName, owner: owner, latlng: center, layer: layer, relation: statoRelazione };
-                        
-                        document.getElementById('selected-region-name').innerText = countryName;
-                        document.getElementById('selected-region-owner').innerText = "Proprietario: " + owner;
-                        document.getElementById('selected-region-diplomacy').innerText = "Stato Diplomatico: " + statoRelazione;
-                        document.getElementById('region-actions').style.display = 'block';
-                        document.getElementById('stationed-units-box').style.display = 'block';
-                        updateUnitsDisplay(countryName);
-                    });
-                }
-            }).addTo(map);
+                    document.getElementById('selected-region-name').innerText = reg.name;
+                    document.getElementById('selected-region-owner').innerText = `Nazione: ${reg.nation} (${owner})`;
+                    document.getElementById('selected-region-diplomacy').innerText = "Stato Diplomatico: " + statoRelazione;
+                    document.getElementById('region-actions').style.display = 'block';
+                    document.getElementById('stationed-units-box').style.display = 'block';
+                    updateUnitsDisplay(reg.name);
+                });
+
+                marker.regionInfo = reg;
+                regionMarkers[reg.name] = marker;
+            });
         }
 
-        // Loop di gioco: Economia (+1M ogni minuto) e AI aggressiva (Guerre random)
         function avviaLoopDigioco() {
-            // 1. Aumento fondi ogni 60 secondi
             setInterval(() => {
                 playerMoney += 1000000;
                 document.getElementById('player-money').innerText = playerMoney.toLocaleString() + " €";
-                console.pippo ? "" : console.log("Fondi aumentati di 1.000.000 €");
             }, 60000);
 
-            // 2. Controllo attacchi IA random ogni 30 secondi
             setInterval(() => {
-                nesTuttiBot = Object.keys(nationRelations);
-                if (nesTuttiBot.length === 0) return;
-
-                let botCasuale = nesTuttiBot[Math.floor(Math.random() * nesTuttiBot.length)];
+                let nazioniUniche = Object.keys(nationRelations);
+                if (nazioniUniche.length === 0) return;
+                let botCasuale = nazioniUniche[Math.floor(Math.random() * nazioniUniche.length)];
                 
-                // Calcola forza totale del giocatore
-                let playerTotalPower = 0;
-                Object.values(territoryUnits.length ? territoryUnits : {}).forEach(u => {
-                    playerTotalPower += (u.soldier + u.tank * 3 + u.aircraft * 2);
-                });
-
-                // Se il bot è ostile o neutro e il giocatore è debole, può dichiarare guerra
-                if (nationRelations[botCasuale] === "Ostile" || (nationRelations[botCasuale] === "Neutrale" && Math.random() > 0.6)) {
+                if (nationRelations[botCasuale] === "Ostile" || (nationRelations[botCasuale] === "Neutrale" && Math.random() > 0.65)) {
                     nationRelations[botCasuale] = "In Guerra!";
-                    alert(`⚠️ ATTENZIONE GENERALE! La nazione di [ ${botCasuale} ] ti ha dichiarato guerra a sorpresa!`);
+                    alert(`⚠️ ATTENZIONE GENERALE! La nazione di [ ${botCasuale} ] (Nord Africa/Medio Oriente/Europa) ti ha dichiarato guerra!`);
                 }
             }, 30000);
         }
@@ -366,38 +377,34 @@
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
             const loadIndex = urlParams.get('load');
-            
-            setTimeout(() => {
-                if (loadIndex !== null) {
-                    let savedGames = JSON.parse(localStorage.getItem('wop_saved_games') || '[]');
-                    if (savedGames[loadIndex]) {
-                        let g = savedGames[loadIndex];
-                        nationName = g.nationName;
-                        playerMoney = g.money;
-                        playerChosenNation = g.playerChosenNation || "Italy";
-                        nationRelations = g.nationRelations || {};
-                        document.getElementById('nation-name-input').value = g.nationName;
-                        document.getElementById('regime-select').value = g.regime;
-                        document.getElementById('player-money').innerText = playerMoney.toLocaleString() + " €";
-                        if (g.territoryUnits) territoryUnits = g.territoryUnits;
-                        
-                        document.getElementById('nation-select-screen').style.display = 'none';
-                        renderMap();
-                        avviaLoopDigioco();
-                    }
+            if (loadIndex !== null) {
+                let savedGames = JSON.parse(localStorage.getItem('wop_saved_games') || '[]');
+                if (savedGames[loadIndex]) {
+                    let g = savedGames[loadIndex];
+                    playerMoney = g.money;
+                    playerChosenNation = g.playerChosenNation || "Italia";
+                    nationRelations = g.nationRelations || {};
+                    document.getElementById('nation-name-input').value = g.nationName;
+                    document.getElementById('regime-select').value = g.regime;
+                    document.getElementById('player-money').innerText = playerMoney.toLocaleString() + " €";
+                    if (g.territoryUnits) territoryUnits = g.territoryUnits;
+                    
+                    document.getElementById('nation-select-screen').style.display = 'none';
+                    renderMapRegions();
+                    avviaLoopDigioco();
                 }
-            }, 600);
+            }
         };
 
-        function updateUnitsDisplay(countryName) {
-            let u = territoryUnits[countryName] || { soldier: 0, tank: 0, airdefense: 0, aircraft: 0, missiles: 0 };
+        function updateUnitsDisplay(regionName) {
+            let u = territoryUnits[regionName] || { soldier: 0, tank: 0, airdefense: 0, aircraft: 0, missiles: 0 };
             let text = `Fanteria: ${u.soldier} | Carri: ${u.tank} | Difesa Aerea: ${u.airdefense} | Aerei: ${u.aircraft} | Missili: ${u.missiles}`;
             document.getElementById('units-list-text').innerText = text;
         }
 
         function recruitUnit(type, iconFileName) {
             if (!selectedTerritoryData) {
-                alert("Seleziona prima un territorio sulla mappa in cui piazzare l'unità!");
+                alert("Seleziona prima una regione sulla mappa in cui piazzare l'unità!");
                 return;
             }
 
@@ -406,31 +413,31 @@
                 playerMoney -= costs[type];
                 document.getElementById('player-money').innerText = playerMoney.toLocaleString() + " €";
 
-                let cName = selectedTerritoryData.name;
-                if (!territoryUnits[cName]) {
-                    territoryUnits[cName] = { soldier: 0, tank: 0, airdefense: 0, aircraft: 0, missiles: 0, marker: null };
+                let rName = selectedTerritoryData.name;
+                if (!territoryUnits[rName]) {
+                    territoryUnits[rName] = { soldier: 0, tank: 0, airdefense: 0, aircraft: 0, missiles: 0, marker: null };
                 }
-                territoryUnits[cName][type] += (type === 'missiles' ? 5 : 100);
+                territoryUnits[rName][type] += (type === 'missiles' ? 5 : 100);
 
                 let latlng = selectedTerritoryData.latlng;
-                if (!territoryUnits[cName].marker) {
+                if (!territoryUnits[rName].marker) {
                     let unitIcon = L.icon({
                         iconUrl: iconFileName,
-                        iconSize: [28, 28],
-                        iconAnchor: [14, 14]
+                        iconSize: [26, 26],
+                        iconAnchor: [13, 13]
                     });
-                    territoryUnits[cName].marker = L.marker(latlng, { icon: unitIcon }).addTo(map);
+                    territoryUnits[rName].marker = L.marker(latlng, { icon: unitIcon }).addTo(map);
                 } else {
                     let unitIcon = L.icon({
                         iconUrl: iconFileName,
-                        iconSize: [28, 28],
-                        iconAnchor: [14, 14]
+                        iconSize: [26, 26],
+                        iconAnchor: [13, 13]
                     });
-                    territoryUnits[cName].marker.setIcon(unitIcon);
+                    territoryUnits[rName].marker.setIcon(unitIcon);
                 }
 
-                updateUnitsDisplay(cName);
-                alert(`Unità ${type} reclutata e schierata a ${cName}!`);
+                updateUnitsDisplay(rName);
+                alert(`Unità ${type} schierata a ${rName}!`);
             } else {
                 alert("Fondi insufficienti!");
             }
@@ -438,12 +445,12 @@
 
         function startMovementMode() {
             if (!selectedTerritoryData) {
-                alert("Seleziona prima il territorio di partenza.");
+                alert("Seleziona prima la regione di partenza.");
                 return;
             }
             isMovingMode = true;
-            waypoints = [[selectedTerritoryData.latlng.lat, selectedTerritoryData.latlng.lng]];
-            alert("Modalità movimento attiva: clicca sui territori di destinazione per tracciare la rotta, poi clicca 'Invia Truppe'.");
+            waypoints = [selectedTerritoryData.latlng];
+            alert("Modalità movimento attiva: clicca sulle regioni di destinazione per tracciare la rotta, poi clicca 'Invia Truppe'.");
             document.getElementById('send-btn').style.display = 'block';
         }
 
@@ -461,23 +468,24 @@
             }
             isMovingMode = false;
             document.getElementById('send-btn').style.display = 'none';
-            alert("Truppe in movimento lungo la rotta strategica[cite: 2]!");
+            alert("Truppe in movimento lungo la rotta strategica tra le regioni[cite: 2]!");
             if (movementLine) map.removeLayer(movementLine);
         }
 
         function openDiplomacy() {
             if (!selectedTerritoryData) return;
-            let status = selectedTerritoryData.relation;
-            let action = prompt(`Rapporti con ${selectedTerritoryData.name} (${status}):\n1. Dichiarare Guerra\n2. Proporre Alleanza\n3. Chiedere Pace / Trattato`);
+            let nat = selectedTerritoryData.nation;
+            let status = nationRelations[nat] || "Nazione Tua";
+            let action = prompt(`Rapporti con la nazione di ${nat} (${status}):\n1. Dichiarare Guerra\n2. Proporre Alleanza\n3. Chiedere Pace`);
             if (action === "1") {
-                nationRelations[selectedTerritoryData.name] = "In Guerra!";
-                alert("Hai dichiarato guerra a " + selectedTerritoryData.name + "!");
+                nationRelations[nat] = "In Guerra!";
+                alert("Hai dichiarato guerra a tutta la nazione di " + nat + "!");
             } else if (action === "2") {
-                nationRelations[selectedTerritoryData.name] = "Alleato";
-                alert("Alleanza stabilita con successo con " + selectedTerritoryData.name + "!");
+                nationRelations[nat] = "Alleato";
+                alert("Alleanza stabilita con " + nat + "!");
             } else if (action === "3") {
-                nationRelations[selectedTerritoryData.name] = "Neutrale";
-                alert("Trattato di pace firmato.");
+                nationRelations[nat] = "Neutrale";
+                alert("Trattato firmato.");
             }
         }
 
