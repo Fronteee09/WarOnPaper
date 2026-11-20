@@ -42,7 +42,7 @@
 
         /* Pannello laterale comandi */
         .side-panel {
-            width: 320px;
+            width: 330px;
             background-color: #13161c;
             border-left: 1px solid #262b36;
             display: flex;
@@ -63,6 +63,15 @@
 
         .unit-card { background: #1a1f2c; border: 1px solid #262b36; padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
         .unit-info font { font-size: 0.8rem; color: #94a3b8; display: block; }
+
+        .stationed-units {
+            font-size: 0.85rem;
+            background: #1a1f2c;
+            padding: 8px;
+            border-radius: 6px;
+            margin-top: 8px;
+            border: 1px solid #333c4d;
+        }
 
         .back-menu { margin-top: auto; display: block; text-align: center; color: #64748b; text-decoration: none; font-size: 0.85rem; }
         .back-menu:hover { color: #fff; }
@@ -105,33 +114,39 @@
             <div class="panel-section" id="region-info-section">
                 <h3>Territorio Selezionato</h3>
                 <p id="selected-region-name" style="font-size: 1.1rem; font-weight: bold; margin-bottom: 5px;">Nessuno</p>
-                <p id="selected-region-owner" style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 12px;">Proprietario: -</p>
-                <div id="region-actions" style="display:none;">
+                <p id="selected-region-owner" style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 6px;">Proprietario: -</p>
+                
+                <div id="stationed-units-box" class="stationed-units" style="display:none;">
+                    <strong>Unità di stanza:</strong>
+                    <div id="units-list-text" style="font-size: 0.8rem; color: #cbd5e1; margin-top: 4px;">Nessuna unità</div>
+                </div>
+
+                <div id="region-actions" style="display:none; margin-top: 10px;">
                     <button class="btn btn-secondary" onclick="openDiplomacy()">Diplomazia / Azioni</button>
                 </div>
             </div>
 
             <div class="panel-section">
-                <h3>Reclutamento Unità</h3>
+                <h3>Reclutamento Unità (Piazza qui)</h3>
                 <div class="unit-card">
                     <div class="unit-info"><strong>Fanteria (100)</strong><font>80 HP • 5K €</font></div>
-                    <button class="btn btn-blue" style="width: auto; margin:0; padding: 6px 10px;" onclick="recruitUnit('soldier')">Recluta</button>
+                    <button class="btn btn-blue" style="width: auto; margin:0; padding: 6px 10px;" onclick="recruitUnit('soldier', 'soldier.png')">Piazza</button>
                 </div>
                 <div class="unit-card">
                     <div class="unit-info"><strong>Carri Armati (100)</strong><font>300 HP • 70K €</font></div>
-                    <button class="btn btn-blue" style="width: auto; margin:0; padding: 6px 10px;" onclick="recruitUnit('tank')">Recluta</button>
+                    <button class="btn btn-blue" style="width: auto; margin:0; padding: 6px 10px;" onclick="recruitUnit('tank', 'tank.png')">Piazza</button>
                 </div>
                 <div class="unit-card">
                     <div class="unit-info"><strong>Difesa Aerea (100)</strong><font>150 HP • 40K €</font></div>
-                    <button class="btn btn-blue" style="width: auto; margin:0; padding: 6px 10px;" onclick="recruitUnit('airdefense')">Recluta</button>
+                    <button class="btn btn-blue" style="width: auto; margin:0; padding: 6px 10px;" onclick="recruitUnit('airdefense', 'airdefense.png')">Piazza</button>
                 </div>
                 <div class="unit-card">
                     <div class="unit-info"><strong>Aerei (100)</strong><font>150 HP • 60K €</font></div>
-                    <button class="btn btn-blue" style="width: auto; margin:0; padding: 6px 10px;" onclick="recruitUnit('aircraft')">Recluta</button>
+                    <button class="btn btn-blue" style="width: auto; margin:0; padding: 6px 10px;" onclick="recruitUnit('aircraft', 'aircraft.png')">Piazza</button>
                 </div>
                 <div class="unit-card">
                     <div class="unit-info"><strong>Missili (5)</strong><font>60 HP cad • 100Hp danno</font></div>
-                    <button class="btn btn-blue" style="width: auto; margin:0; padding: 6px 10px;" onclick="recruitUnit('missiles')">Lancia</button>
+                    <button class="btn btn-blue" style="width: auto; margin:0; padding: 6px 10px;" onclick="recruitUnit('missiles', 'missiles.png')">Lancia</button>
                 </div>
             </div>
 
@@ -160,6 +175,9 @@
         let movementLine = null;
         let waypoints = [];
 
+        // Database delle unità stanziate per ogni territorio
+        let territoryUnits = {};
+
         function updateNationName(val) { nationName = val; }
         function updateFlag(url) { if(url) document.getElementById('flag-preview').src = url; }
 
@@ -176,7 +194,7 @@
             maxZoom: 19
         }).addTo(map);
 
-        // Caricamento dei confini reali dei paesi europei tramite GeoJSON pubblico ufficiale
+        // Caricamento dei confini reali dei paesi europei tramite GeoJSON
         fetch('https://raw.githubusercontent.com/leakyMirror/map-of-europe/master/GeoJSON/europe.geojson')
             .then(res => res.json())
             .then(data => {
@@ -188,13 +206,17 @@
                             fillColor: isPlayer ? '#2563eb' : '#1e1b4b',
                             weight: 1,
                             opacity: 1,
-                            color: '#334155', // Bordi sottili tra le nazioni
+                            color: '#334155',
                             fillOpacity: 0.65
                         };
                     },
                     onEachFeature: function(feature, layer) {
                         let countryName = feature.properties.NAME || feature.properties.name || "Territorio";
                         let owner = (countryName.toLowerCase() === "italy" || countryName.toLowerCase() === "italia") ? "player" : "Bot_" + countryName;
+
+                        if (!territoryUnits[countryName]) {
+                            territoryUnits[countryName] = { soldier: 0, tank: 0, airdefense: 0, aircraft: 0, missiles: 0, marker: null };
+                        }
 
                         layer.bindTooltip(countryName, {direction: 'center', className: 'map-label'});
 
@@ -218,14 +240,24 @@
                                 color: '#ffffff'
                             });
 
-                            selectedTerritoryData = { name: countryName, owner: owner, latlng: e.latlng };
+                            let center = layer.getBounds().getCenter();
+                            selectedTerritoryData = { name: countryName, owner: owner, latlng: center, layer: layer };
+                            
                             document.getElementById('selected-region-name').innerText = countryName;
                             document.getElementById('selected-region-owner').innerText = "Proprietario: " + owner;
                             document.getElementById('region-actions').style.display = 'block';
+                            document.getElementById('stationed-units-box').style.display = 'block';
+                            updateUnitsDisplay(countryName);
                         });
                     }
                 }).addTo(map);
             });
+
+        function updateUnitsDisplay(countryName) {
+            let u = territoryUnits[countryName];
+            let text = `Fanteria: ${u.soldier} | Carri: ${u.tank} | Difesa Aerea: ${u.airdefense} | Aerei: ${u.aircraft} | Missili: ${u.missiles}`;
+            document.getElementById('units-list-text').innerText = text;
+        }
 
         // Caricamento partita salvata
         window.onload = function() {
@@ -240,16 +272,46 @@
                     document.getElementById('nation-name-input').value = g.nationName;
                     document.getElementById('regime-select').value = g.regime;
                     document.getElementById('player-money').innerText = playerMoney.toLocaleString() + " €";
+                    if (g.territoryUnits) territoryUnits = g.territoryUnits;
                 }
             }
         };
 
-        function recruitUnit(type) {
+        function recruitUnit(type, iconFileName) {
+            if (!selectedTerritoryData) {
+                alert("Seleziona prima un territorio sulla mappa in cui piazzare l'unità!");
+                return;
+            }
+
             let costs = { soldier: 5000, tank: 70000, airdefense: 40000, aircraft: 60000, missiles: 20000 };
             if (playerMoney >= costs[type]) {
                 playerMoney -= costs[type];
                 document.getElementById('player-money').innerText = playerMoney.toLocaleString() + " €";
-                alert(`Unità ${type} reclutata con successo!`);
+
+                let cName = selectedTerritoryData.name;
+                territoryUnits[cName][type] += (type === 'missiles' ? 5 : 100);
+
+                // Mostra o aggiorna l'icona visiva dell'unità sul territorio nella mappa
+                let latlng = selectedTerritoryData.latlng;
+                if (!territoryUnits[cName].marker) {
+                    let unitIcon = L.icon({
+                        iconUrl: iconFileName,
+                        iconSize: [28, 28],
+                        iconAnchor: [14, 14]
+                    });
+                    territoryUnits[cName].marker = L.marker(latlng, { icon: unitIcon }).addTo(map);
+                } else {
+                    // Se c'è già un'icona, aggiorniamo l'icona principale con l'ultima unità creata
+                    let unitIcon = L.icon({
+                        iconUrl: iconFileName,
+                        iconSize: [28, 28],
+                        iconAnchor: [14, 14]
+                    });
+                    territoryUnits[cName].marker.setIcon(unitIcon);
+                }
+
+                updateUnitsDisplay(cName);
+                alert(`Unità ${type} reclutata e schierata a ${cName}!`);
             } else {
                 alert("Fondi insufficienti!");
             }
@@ -280,7 +342,7 @@
             }
             isMovingMode = false;
             document.getElementById('send-btn').style.display = 'none';
-            alert("Truppe in movimento lungo la rotta strategica!");
+            alert("Truppe in movimento lungo la rotta strategica[cite: 2]!");
             if (movementLine) map.removeLayer(movementLine);
         }
 
@@ -298,7 +360,8 @@
                 nationName: nationName,
                 money: playerMoney,
                 regime: document.getElementById('regime-select').value,
-                timestamp: new Date().toLocaleString()
+                timestamp: new Date().toLocaleString(),
+                territoryUnits: territoryUnits
             };
             let savedGames = JSON.parse(localStorage.getItem('wop_saved_games') || '[]');
             savedGames.push(gameState);
