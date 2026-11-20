@@ -4,182 +4,49 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WarOnPaper - Strategy Wargame</title>
-    
-    <!-- Favicon del sito -->
     <link rel="icon" type="image/png" href="waronpaperlogo.png">
 
     <style>
-        /* Reset e impostazioni base */
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
-
-        body {
-            background-color: #090a0d; /* Sfondo nero scuro */
-            color: #e2e8f0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        /* Box centrale responsive (si adatta automaticamente a mobile e desktop) */
-        .menu-container {
-            background-color: #13161c;
-            border: 1px solid #262b36;
-            border-radius: 14px;
-            padding: 36px 28px;
-            width: 100%;
-            max-width: 390px;
-            text-align: center;
-            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.85);
-        }
-
-        /* Sezione Logo */
-        .header-logo {
-            margin-bottom: 28px;
-        }
-
-        .logo-img {
-            width: 96px;
-            height: 96px;
-            object-fit: contain;
-            margin-bottom: 14px;
-            border-radius: 10px;
-        }
-
-        h1 {
-            font-size: 1.85rem;
-            letter-spacing: 1.5px;
-            color: #ffffff;
-            text-transform: uppercase;
-            font-weight: 800;
-        }
-
-        .subtitle {
-            font-size: 0.85rem;
-            color: #7e8899;
-            margin-top: 4px;
-            letter-spacing: 0.5px;
-        }
-
-        /* Contenitore Pulsanti */
-        .menu-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .btn {
-            display: block;
-            width: 100%;
-            padding: 14px;
-            text-decoration: none;
-            font-size: 0.95rem;
-            font-weight: 600;
-            border-radius: 8px;
-            transition: all 0.2s ease;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            cursor: pointer;
-        }
-
-        /* Tasti principali (Singleplayer / Multiplayer) */
-        .btn-primary {
-            background-color: #2563eb;
-            color: #ffffff;
-            border: 1px solid #3b82f6;
-        }
-
-        .btn-primary:hover {
-            background-color: #1d4ed8;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
-        }
-
-        .btn-primary:active {
-            transform: translateY(0);
-        }
-
-        /* Tasto Sandbox */
-        .btn-secondary {
-            background-color: #1e2430;
-            color: #f1f5f9;
-            border: 1px solid #333c4d;
-        }
-
-        .btn-secondary:hover {
-            background-color: #2a3342;
-            border-color: #475569;
-            transform: translateY(-2px);
-        }
-
-        .btn-secondary:active {
-            transform: translateY(0);
-        }
-
-        /* Linea divisoria */
-        .divider {
-            height: 1px;
-            background-color: #262b36;
-            margin: 6px 0;
-        }
-
-        /* Tasti secondari (Account / Options) */
-        .btn-outline {
-            background-color: transparent;
-            color: #94a3b8;
-            border: 1px solid #262b36;
-            font-size: 0.85rem;
-            padding: 11px;
-        }
-
-        .btn-outline:hover {
-            color: #ffffff;
-            border-color: #4b5563;
-            background-color: rgba(255, 255, 255, 0.04);
-        }
-
-        /* Footer */
-        .menu-footer {
-            margin-top: 26px;
-            font-size: 0.75rem;
-            color: #4b5563;
-            letter-spacing: 0.5px;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
+        body { background-color: #090a0d; color: #e2e8f0; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .menu-container { background-color: #13161c; border: 1px solid #262b36; border-radius: 14px; padding: 36px 28px; width: 100%; max-width: 390px; text-align: center; box-shadow: 0 12px 35px rgba(0, 0, 0, 0.85); }
+        .header-logo { margin-bottom: 28px; }
+        .logo-img { width: 96px; height: 96px; object-fit: contain; margin-bottom: 14px; border-radius: 10px; }
+        h1 { font-size: 1.85rem; letter-spacing: 1.5px; color: #ffffff; text-transform: uppercase; font-weight: 800; }
+        .subtitle { font-size: 0.85rem; color: #7e8899; margin-top: 4px; }
+        .menu-buttons { display: flex; flex-direction: column; gap: 12px; }
+        .btn { display: block; width: 100%; padding: 14px; text-decoration: none; font-size: 0.95rem; font-weight: 600; border-radius: 8px; transition: all 0.2s ease; text-transform: uppercase; letter-spacing: 0.8px; cursor: pointer; }
+        .btn-primary { background-color: #2563eb; color: #ffffff; border: 1px solid #3b82f6; }
+        .btn-primary:hover { background-color: #1d4ed8; }
+        .btn-secondary { background-color: #1e2430; color: #f1f5f9; border: 1px solid #333c4d; }
+        .btn-secondary:hover { background-color: #2a3342; }
+        .divider { height: 1px; background-color: #262b36; margin: 6px 0; }
+        .btn-outline { background-color: transparent; color: #94a3b8; border: 1px solid #262b36; font-size: 0.85rem; padding: 11px; }
+        .btn-outline:hover { color: #ffffff; border-color: #4b5563; background-color: rgba(255, 255, 255, 0.04); }
+        .menu-footer { margin-top: 26px; font-size: 0.75rem; color: #4b5563; }
     </style>
 </head>
 <body>
-
     <div class="menu-container">
-        <!-- Logo e Titolo -->
         <div class="header-logo">
             <img src="waronpaperlogo.png" alt="WarOnPaper Logo" class="logo-img">
             <h1>WarOnPaper</h1>
             <p class="subtitle">Tactical Map Simulator</p>
         </div>
 
-        <!-- Pulsanti di navigazione -->
         <nav class="menu-buttons">
-            <a href="singleplayer.html" class="btn btn-primary">Singleplayer</a>
+            <a href="singleplayer.html" class="btn btn-primary">Nuova Partita</a>
+            <a href="yourgames.html" class="btn btn-secondary">Le tue partite</a>
             <a href="multiplayer.html" class="btn btn-primary">Multiplayer</a>
             <a href="sandbox.html" class="btn btn-secondary">Sandbox</a>
-            
             <div class="divider"></div>
-            
             <a href="account.html" class="btn btn-outline">Account</a>
             <a href="options.html" class="btn btn-outline">Options</a>
         </nav>
 
-        <!-- Versione -->
         <footer class="menu-footer">
             <span>WarOnPaper • v0.1 Alpha</span>
         </footer>
     </div>
-
 </body>
 </html>
