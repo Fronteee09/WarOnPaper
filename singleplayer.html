@@ -47,7 +47,7 @@
         }
         #map-svg:active { cursor: grabbing; }
 
-        /* Stili delle nazioni sulla mappa SVG */
+        /* Stili nazioni */
         .country-path {
             fill: #1a2230;
             stroke: #2e384d;
@@ -55,20 +55,24 @@
             transition: fill 0.2s, stroke 0.2s;
             cursor: pointer;
         }
-        .country-path:hover {
-            fill: #25334a;
-            stroke: #3b82f6;
-            stroke-width: 1.5px;
-        }
-        .country-path.selected {
-            fill: #1d4ed8 !important;
-            stroke: #ffffff !important;
-            stroke-width: 2px;
-        }
+        .country-path:hover { fill: #25334a; stroke: #3b82f6; stroke-width: 1.5px; }
+        .country-path.selected { fill: #1d4ed8 !important; stroke: #ffffff !important; stroke-width: 2px; }
         .country-path.player { fill: #1e3a8a; }
         .country-path.enemy { fill: #7f1d1d; stroke: #991b1b; }
 
-        /* Controlli Zoom stile mappa (+ / -) */
+        /* Frecce di movimento stile Control Europe */
+        .movement-arrow {
+            stroke: #ef4444;
+            stroke-width: 4px;
+            fill: none;
+            stroke-dasharray: 8, 4;
+            animation: moveDash 1s linear infinite;
+        }
+        @keyframes moveDash {
+            to { stroke-dashoffset: -12; }
+        }
+
+        /* Controlli Zoom */
         .zoom-controls {
             position: absolute;
             top: 20px;
@@ -80,26 +84,18 @@
             border: 1px solid #262b36;
             border-radius: 8px;
             padding: 4px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
             z-index: 10;
         }
         .zoom-btn {
-            width: 32px;
-            height: 32px;
-            background: #1a1f2c;
-            border: 1px solid #333c4d;
-            color: #fff;
-            font-size: 1.2rem;
-            font-weight: bold;
-            border-radius: 6px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            width: 32px; height: 32px;
+            background: #1a1f2c; border: 1px solid #333c4d;
+            color: #fff; font-size: 1.2rem; font-weight: bold;
+            border-radius: 6px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
         }
         .zoom-btn:hover { background: #25334a; border-color: #3b82f6; }
 
-        /* Pannello laterale comandi */
+        /* Pannello laterale */
         .side-panel {
             width: 320px;
             background-color: #13161c;
@@ -129,7 +125,6 @@
 </head>
 <body>
 
-    <!-- Barra in alto -->
     <header class="top-bar">
         <div class="top-left">
             <span>Comandante: <strong id="player-name">Generale</strong></span>
@@ -151,34 +146,39 @@
         </div>
     </header>
 
-    <!-- Contenitore Mappa e Pannello -->
     <div class="main-container">
         
-        <!-- Viewport Mappa con Zoom + / - -->
         <div id="map-viewport">
             <div class="zoom-controls">
                 <button class="zoom-btn" onclick="zoomIn()">+</button>
                 <button class="zoom-btn" onclick="zoomOut()">-</button>
             </div>
 
-            <!-- Mappa SVG Vettoriale Interattiva dell'Europa / Mondo -->
+            <!-- Mappa SVG Vettoriale con supporto per Frecce di Movimento -->
             <svg id="map-svg" viewBox="0 0 1000 700" xmlns="http://www.w3.org/2000/svg">
-                <!-- Sfondo oceano -->
                 <rect width="1000" height="700" fill="#0d0f14"/>
 
-                <!-- Gruppo di regioni/nazioni vettoriali interattive -->
                 <g id="regions-group">
-                    <path id="reg-italy" class="country-path player" d="M 480,400 Q 490,420 500,450 Q 485,470 470,440 Z" data-name="Italia" data-owner="player" onclick="selectRegion(this)"></path>
-                    <path id="reg-france" class="country-path enemy" d="M 380,350 L 450,340 L 470,410 L 400,430 Z" data-name="Francia" data-owner="Bot_Francia" onclick="selectRegion(this)"></path>
-                    <path id="reg-germany" class="country-path enemy" d="M 460,280 L 540,290 L 530,370 L 450,360 Z" data-name="Germania" data-owner="Bot_Germania" onclick="selectRegion(this)"></path>
-                    <path id="reg-spain" class="country-path enemy" d="M 260,420 L 370,410 L 380,500 L 280,510 Z" data-name="Spagna" data-owner="Bot_Spagna" onclick="selectRegion(this)"></path>
-                    <path id="reg-uk" class="country-path enemy" d="M 340,240 L 380,230 L 370,310 L 320,300 Z" data-name="Regno Unito" data-owner="Bot_UK" onclick="selectRegion(this)"></path>
-                    <path id="reg-poland" class="country-path enemy" d="M 540,270 L 630,280 L 620,350 L 530,340 Z" data-name="Polonia" data-owner="Bot_Polonia" onclick="selectRegion(this)"></path>
+                    <path id="reg-italy" class="country-path player" d="M 450,380 L 520,370 L 510,460 L 440,450 Z" data-name="Italia" data-owner="player" data-x="480" data-y="415" onclick="selectRegion(this)"></path>
+                    <path id="reg-france" class="country-path enemy" d="M 360,330 L 440,320 L 450,400 L 350,410 Z" data-name="Francia" data-owner="Bot_Francia" data-x="400" data-y="365" onclick="selectRegion(this)"></path>
+                    <path id="reg-germany" class="country-path enemy" d="M 440,250 L 530,260 L 520,350 L 430,340 Z" data-name="Germania" data-owner="Bot_Germania" data-x="480" data-y="300" onclick="selectRegion(this)"></path>
+                    <path id="reg-spain" class="country-path enemy" d="M 240,400 L 350,390 L 360,490 L 250,500 Z" data-name="Spagna" data-owner="Bot_Spagna" data-x="300" data-y="445" onclick="selectRegion(this)"></path>
+                    <path id="reg-uk" class="country-path enemy" d="M 320,210 L 370,200 L 360,290 L 310,280 Z" data-name="Regno Unito" data-owner="Bot_UK" data-x="340" data-y="245" onclick="selectRegion(this)"></path>
+                </g>
+
+                <!-- Livello per le frecce di movimento in stile Control Europe -->
+                <g id="arrows-layer">
+                    <!-- Qui verranno iniettate le frecce animate via JS -->
+                </g>
+
+                <!-- Livello per le unità (soldier.png, tank.png, ecc.) sulla mappa -->
+                <g id="units-layer">
+                    <!-- Icona Fanteria in Italia -->
+                    <image href="soldier.png" x="465" y="400" width="24" height="24"/>
                 </g>
             </svg>
         </div>
 
-        <!-- Pannello Tattico Laterale -->
         <div class="side-panel">
             <h2>Pannello Tattico</h2>
             
@@ -216,8 +216,8 @@
             </div>
 
             <div class="panel-section">
-                <h3>Movimento Truppe</h3>
-                <button class="btn btn-secondary" id="move-btn" onclick="startMovementMode()">Crea Percorso (Waypoints)</button>
+                <h3>Movimento Truppe (Waypoint)</h3>
+                <button class="btn btn-secondary" id="move-btn" onclick="startMovementMode()">Crea Percorso</button>
                 <button class="btn btn-blue" id="send-btn" style="display:none;" onclick="confirmMovement()">Invia Truppe</button>
             </div>
 
@@ -225,7 +225,6 @@
         </div>
     </div>
 
-    <!-- Script Logica di Gioco -->
     <script>
         const currentUser = localStorage.getItem('wop_current_user') || "Generale";
         document.getElementById('player-name').innerText = currentUser;
@@ -235,42 +234,43 @@
         let currentZoom = 1;
         let selectedPath = null;
         let selectedRegionData = null;
+        
+        let isMovingMode = false;
+        let movementWaypoints = [];
 
         function updateNationName(val) { nationName = val; }
         function updateFlag(url) { if(url) document.getElementById('flag-preview').src = url; }
 
-        // Gestione Zoom mappa (+ / -)
-        function zoomIn() {
-            currentZoom = Math.min(currentZoom + 0.25, 2.5);
-            applyZoom();
-        }
-        function zoomOut() {
-            currentZoom = Math.max(currentZoom - 0.25, 0.75);
-            applyZoom();
-        }
-        function applyZoom() {
-            document.getElementById('map-svg').style.transform = `scale(${currentZoom})`;
-        }
+        function zoomIn() { currentZoom = Math.min(currentZoom + 0.25, 2.5); applyZoom(); }
+        function zoomOut() { currentZoom = Math.max(currentZoom - 0.25, 0.75); applyZoom(); }
+        function applyZoom() { document.getElementById('map-svg').style.transform = `scale(${currentZoom})`; }
 
-        // Selezione Regione sulla mappa SVG
         function selectRegion(pathElement) {
-            if (selectedPath) {
+            if (selectedPath && !isMovingMode) {
                 selectedPath.classList.remove('selected');
             }
-            selectedPath = pathElement;
-            selectedPath.classList.add('selected');
-
+            
             const regName = pathElement.getAttribute('data-name');
             const regOwner = pathElement.getAttribute('data-owner');
+            const rx = parseFloat(pathElement.getAttribute('data-x'));
+            const ry = parseFloat(pathElement.getAttribute('data-y'));
 
-            selectedRegionData = { name: regName, owner: regOwner, element: pathElement };
+            if (isMovingMode) {
+                // Aggiungi waypoint per il movimento stile Control Europe
+                movementWaypoints.push({ x: rx, y: ry, name: regName });
+                drawMovementArrows();
+                return;
+            }
+
+            selectedPath = pathElement;
+            selectedPath.classList.add('selected');
+            selectedRegionData = { name: regName, owner: regOwner, x: rx, y: ry, element: pathElement };
 
             document.getElementById('selected-region-name').innerText = regName;
             document.getElementById('selected-region-owner').innerText = "Proprietario: " + regOwner;
             document.getElementById('region-actions').style.display = 'block';
         }
 
-        // Caricamento partita salvata (se richiamata da yourgames.html)
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
             const loadIndex = urlParams.get('load');
@@ -292,7 +292,7 @@
             if (playerMoney >= costs[type]) {
                 playerMoney -= costs[type];
                 document.getElementById('player-money').innerText = playerMoney.toLocaleString() + " €";
-                alert(`Unità ${type} reclutata con successo!`);
+                alert(`Unità ${type} reclutata!`);
             } else {
                 alert("Fondi insufficienti!");
             }
@@ -300,21 +300,46 @@
 
         function startMovementMode() {
             if (!selectedRegionData) {
-                alert("Seleziona prima una regione di partenza!");
+                alert("Seleziona prima la regione di partenza delle tue truppe.");
                 return;
             }
-            alert("Modalità movimento attiva: clicca sul territorio di destinazione per impostare i waypoint.");
+            isMovingMode = true;
+            movementWaypoints = [{ x: selectedRegionData.x, y: selectedRegionData.y, name: selectedRegionData.name }];
+            alert("Modo movimento attivo: clicca sui territori successivi per creare la rotta (waypoint) e poi clicca 'Invia Truppe'.");
             document.getElementById('send-btn').style.display = 'block';
         }
 
+        function drawMovementArrows() {
+            const layer = document.getElementById('arrows-layer');
+            layer.innerHTML = "";
+            if (movementWaypoints.length < 2) return;
+
+            let pathData = `M ${movementWaypoints[0].x} ${movementWaypoints[0].y}`;
+            for (let i = 1; i < movementWaypoints.length; i++) {
+                pathData += ` L ${movementWaypoints[i].x} ${movementWaypoints[i].y}`;
+            }
+
+            const arrow = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            arrow.setAttribute("d", pathData);
+            arrow.setAttribute("class", "movement-arrow");
+            layer.appendChild(arrow);
+        }
+
         function confirmMovement() {
-            alert("Truppe inviate con successo lungo il percorso!");
+            if (movementWaypoints.length < 2) {
+                alert("Seleziona almeno un territorio di destinazione!");
+                return;
+            }
+            isMovingMode = false;
             document.getElementById('send-btn').style.display = 'none';
+            alert("Truppe in movimento lungo i waypoint stabiliti!");
+            // Pulisci le frecce dopo l'invio
+            document.getElementById('arrows-layer').innerHTML = "";
         }
 
         function openDiplomacy() {
             if (!selectedRegionData) return;
-            let action = prompt(`Azioni diplomatiche con ${selectedRegionData.owner}:\n1. Dichiarare Guerra\n2. Chiedere Annessione\n3. Chiedere Territori`);
+            let action = prompt(`Azioni con ${selectedRegionData.owner}:\n1. Dichiarare Guerra\n2. Chiedere Annessione\n3. Chiedere Territori`);
             if (action === "1") alert("Guerra dichiarata!");
             else if (action === "2") alert("Richiesta di annessione inviata.");
             else if (action === "3") alert("Richiesta territori inviata.");
@@ -331,7 +356,7 @@
             let savedGames = JSON.parse(localStorage.getItem('wop_saved_games') || '[]');
             savedGames.push(gameState);
             localStorage.setItem('wop_saved_games', JSON.stringify(savedGames));
-            alert("Partita salvata con successo nella memoria del browser!");
+            alert("Partita salvata con successo!");
         }
     </script>
 </body>
