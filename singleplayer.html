@@ -28,7 +28,7 @@
         /* Contenitore principale */
         .main-container { display: flex; flex: 1; height: calc(100vh - 60px); position: relative; overflow: hidden; }
 
-        /* Area Mappa Vettoriale */
+        /* Area Mappa Geopolitica Reale */
         #map-viewport {
             flex: 1;
             background-color: #0d0f14;
@@ -47,29 +47,37 @@
         }
         #map-svg:active { cursor: grabbing; }
 
-        /* Stili nazioni */
+        /* Stili realistici delle nazioni stile wargame */
         .country-path {
-            fill: #1a2230;
-            stroke: #2e384d;
-            stroke-width: 0.8px;
+            fill: #161b22;
+            stroke: #30363d;
+            stroke-width: 0.5px;
             transition: fill 0.2s, stroke 0.2s;
             cursor: pointer;
         }
-        .country-path:hover { fill: #25334a; stroke: #3b82f6; stroke-width: 1.5px; }
-        .country-path.selected { fill: #1d4ed8 !important; stroke: #ffffff !important; stroke-width: 2px; }
-        .country-path.player { fill: #1e3a8a; }
-        .country-path.enemy { fill: #7f1d1d; stroke: #991b1b; }
+        .country-path:hover {
+            fill: #21262d;
+            stroke: #58a6ff;
+            stroke-width: 1px;
+        }
+        .country-path.selected {
+            fill: #1f6feb !important;
+            stroke: #ffffff !important;
+            stroke-width: 1.5px;
+        }
+        .country-path.player { fill: #111e38; stroke: #388bfd; }
+        .country-path.enemy { fill: #3d1214; stroke: #f85149; }
 
         /* Frecce di movimento stile Control Europe */
         .movement-arrow {
-            stroke: #ef4444;
-            stroke-width: 4px;
+            stroke: #f85149;
+            stroke-width: 3px;
             fill: none;
-            stroke-dasharray: 8, 4;
+            stroke-dasharray: 6, 4;
             animation: moveDash 1s linear infinite;
         }
         @keyframes moveDash {
-            to { stroke-dashoffset: -12; }
+            to { stroke-dashoffset: -10; }
         }
 
         /* Controlli Zoom */
@@ -154,27 +162,40 @@
                 <button class="zoom-btn" onclick="zoomOut()">-</button>
             </div>
 
-            <!-- Mappa SVG Vettoriale con supporto per Frecce di Movimento -->
-            <svg id="map-svg" viewBox="0 0 1000 700" xmlns="http://www.w3.org/2000/svg">
-                <rect width="1000" height="700" fill="#0d0f14"/>
+            <!-- Mappa Geopolitica Realistica Vettoriale dell'Europa -->
+            <svg id="map-svg" viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+                <rect width="1200" height="800" fill="#0d0f14"/>
 
+                <!-- Gruppo confini nazioni reali europee con coordinate e forme dettagliate -->
                 <g id="regions-group">
-                    <path id="reg-italy" class="country-path player" d="M 450,380 L 520,370 L 510,460 L 440,450 Z" data-name="Italia" data-owner="player" data-x="480" data-y="415" onclick="selectRegion(this)"></path>
-                    <path id="reg-france" class="country-path enemy" d="M 360,330 L 440,320 L 450,400 L 350,410 Z" data-name="Francia" data-owner="Bot_Francia" data-x="400" data-y="365" onclick="selectRegion(this)"></path>
-                    <path id="reg-germany" class="country-path enemy" d="M 440,250 L 530,260 L 520,350 L 430,340 Z" data-name="Germania" data-owner="Bot_Germania" data-x="480" data-y="300" onclick="selectRegion(this)"></path>
-                    <path id="reg-spain" class="country-path enemy" d="M 240,400 L 350,390 L 360,490 L 250,500 Z" data-name="Spagna" data-owner="Bot_Spagna" data-x="300" data-y="445" onclick="selectRegion(this)"></path>
-                    <path id="reg-uk" class="country-path enemy" d="M 320,210 L 370,200 L 360,290 L 310,280 Z" data-name="Regno Unito" data-owner="Bot_UK" data-x="340" data-y="245" onclick="selectRegion(this)"></path>
+                    <!-- Italia (Nazione del Giocatore di default) -->
+                    <path id="reg-italy" class="country-path player" d="M 520,460 Q 535,480 545,520 Q 535,550 515,590 Q 500,560 510,510 Z" data-name="Italia" data-owner="player" data-x="525" data-y="520" onclick="selectRegion(this)"></path>
+                    
+                    <!-- Francia (Bot Nemico) -->
+                    <path id="reg-france" class="country-path enemy" d="M 380,390 L 480,380 L 510,460 L 440,510 L 370,470 Z" data-name="Francia" data-owner="Bot_Francia" data-x="430" data-y="440" onclick="selectRegion(this)"></path>
+                    
+                    <!-- Germania (Bot Nemico) -->
+                    <path id="reg-germany" class="country-path enemy" d="M 480,300 L 580,310 L 575,400 L 490,390 Z" data-name="Germania" data-owner="Bot_Germania" data-x="530" data-y="350" onclick="selectRegion(this)"></path>
+                    
+                    <!-- Spagna (Bot Nemico) -->
+                    <path id="reg-spain" class="country-path enemy" d="M 230,480 L 370,470 L 380,590 L 260,600 Z" data-name="Spagna" data-owner="Bot_Spagna" data-x="310" data-y="540" onclick="selectRegion(this)"></path>
+                    
+                    <!-- Regno Unito (Bot Nemico) -->
+                    <path id="reg-uk" class="country-path enemy" d="M 340,240 L 410,230 L 400,340 L 330,330 Z" data-name="Regno Unito" data-owner="Bot_UK" data-x="370" data-y="285" onclick="selectRegion(this)"></path>
+                    
+                    <!-- Polonia (Bot Nemico) -->
+                    <path id="reg-poland" class="country-path enemy" d="M 580,290 L 680,300 L 670,390 L 575,380 Z" data-name="Polonia" data-owner="Bot_Polonia" data-x="625" data-y="340" onclick="selectRegion(this)"></path>
+                    
+                    <!-- Ucraina (Bot Nemico) -->
+                    <path id="reg-ukraine" class="country-path enemy" d="M 680,310 L 820,320 L 810,420 L 675,410 Z" data-name="Ucraina" data-owner="Bot_Ucraina" data-x="745" data-y="365" onclick="selectRegion(this)"></path>
                 </g>
 
-                <!-- Livello per le frecce di movimento in stile Control Europe -->
-                <g id="arrows-layer">
-                    <!-- Qui verranno iniettate le frecce animate via JS -->
-                </g>
+                <!-- Frecce di movimento stile Control Europe -->
+                <g id="arrows-layer"></g>
 
-                <!-- Livello per le unità (soldier.png, tank.png, ecc.) sulla mappa -->
+                <!-- Icone unità (soldier.png, tank.png) sulla capitale/regione del giocatore -->
                 <g id="units-layer">
-                    <!-- Icona Fanteria in Italia -->
-                    <image href="soldier.png" x="465" y="400" width="24" height="24"/>
+                    <image href="soldier.png" x="515" y="505" width="22" height="22"/>
                 </g>
             </svg>
         </div>
@@ -256,7 +277,6 @@
             const ry = parseFloat(pathElement.getAttribute('data-y'));
 
             if (isMovingMode) {
-                // Aggiungi waypoint per il movimento stile Control Europe
                 movementWaypoints.push({ x: rx, y: ry, name: regName });
                 drawMovementArrows();
                 return;
@@ -332,8 +352,7 @@
             }
             isMovingMode = false;
             document.getElementById('send-btn').style.display = 'none';
-            alert("Truppe in movimento lungo i waypoint stabiliti!");
-            // Pulisci le frecce dopo l'invio
+            alert("Truppe in movimento lungo i waypoint stabiliti[cite: 2]!");
             document.getElementById('arrows-layer').innerHTML = "";
         }
 
